@@ -4,7 +4,7 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 
-from chain import get_agent_feedback, get_payment_history, is_valid_address
+from chain import get_agent_feedback, get_identity, get_payment_history, is_valid_address
 
 load_dotenv()
 
@@ -72,3 +72,10 @@ def get_agent_score(agent_address: str):
         "data_sources": ["ERC-8004 Reputation Registry", "x402 Payment History"],
         "last_updated": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%S"),
     }
+
+
+@app.get("/v0/agent/{agent_address}/identity")
+def get_agent_identity(agent_address: str):
+    if not is_valid_address(agent_address):
+        raise HTTPException(status_code=400, detail="Invalid Ethereum address")
+    return get_identity(agent_address)
