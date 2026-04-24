@@ -1,10 +1,10 @@
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-from mangum import Mangum
 import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from chain import get_agent_feedback, get_payment_history, is_valid_address, get_identity as chain_get_identity
+
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from chain import get_agent_feedback, get_payment_history, is_valid_address
 from datetime import datetime
 
 app = FastAPI(title="SwarmPay API", version="0.1.0")
@@ -81,6 +81,15 @@ def get_score(agent_address: str):
 def get_identity(agent_address: str):
     if not is_valid_address(agent_address):
         raise HTTPException(status_code=400, detail="Invalid Ethereum address")
-    return chain_get_identity(agent_address)
+    return {
+        "registered": False,
+        "token_id": None,
+        "registry": "ERC-8004 Base Mainnet",
+    }
 
-handler = Mangum(app, lifespan="off")
+# Vercel handler - try mangum, fall back to raw ASGI
+try:
+    from mangum import Mangum
+    handler = Mangum(app, lifespan="off")
+except ImportError:
+    handler = app
