@@ -48,7 +48,7 @@ def get_agent_score(agent_address: str):
         tier = "AA"
     elif final_score > 550:
         tier = "A"
-    elif final_score > 400:
+    elif final_score >= 400:
         tier = "BBB"
     else:
         tier = "Unrated"

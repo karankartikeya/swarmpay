@@ -10,7 +10,7 @@ export default function Hero() {
   }, []);
 
   return (
-    <section className="relative min-h-screen flex flex-col items-center justify-center text-center px-4 overflow-hidden">
+    <section className="relative min-h-screen flex flex-col items-center justify-center text-center px-4 pb-[120px] overflow-hidden">
       {/* Background grid */}
       <div
         className="absolute inset-0 opacity-[0.03]"
@@ -76,7 +76,7 @@ export default function Hero() {
           </a>
           <a
             href="#"
-            className="border border-sp-border text-sp-white hover:border-sp-primary px-8 py-3 rounded-md transition-colors"
+            className="border border-sp-primary text-sp-primary hover:bg-sp-primary hover:text-white px-8 py-3 rounded-md transition-colors"
           >
             Read the Docs
           </a>

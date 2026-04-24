@@ -15,17 +15,18 @@ interface ScoreData {
   };
 }
 
-function getScoreColor(score: number): string {
-  if (score > 850) return "text-sp-success";
-  if (score > 700) return "text-blue-400";
-  if (score > 550) return "text-yellow-400";
+function getScoreColor(tier: string): string {
+  if (tier === "AAA" || tier === "AA") return "text-sp-success";
+  if (tier === "A") return "text-sp-primary";
+  if (tier === "BBB") return "text-sp-warning";
   return "text-sp-muted";
 }
 
 function getTierStyle(tier: string): string {
-  if (tier === "AAA") return "bg-sp-success/20 text-sp-success";
-  if (tier === "AA") return "bg-blue-500/20 text-blue-400";
-  return "bg-sp-warning/20 text-sp-warning";
+  if (tier === "AAA" || tier === "AA") return "bg-sp-success/20 text-sp-success";
+  if (tier === "A") return "bg-sp-primary/20 text-sp-primary";
+  if (tier === "BBB") return "bg-sp-warning/20 text-sp-warning";
+  return "bg-sp-muted/20 text-sp-muted";
 }
 
 function syntaxHighlightJSON(obj: unknown): string {
@@ -54,19 +55,6 @@ function syntaxHighlightJSON(obj: unknown): string {
     );
 }
 
-const MOCK_SCORE: ScoreData = {
-  agent_id: "0x8004A818BFB912233c491871b3d84c89A494BD9e",
-  score: 742,
-  tier: "AA",
-  confidence: "medium",
-  components: {
-    reputation: 297,
-    volume: 186,
-    payment_reliability: 164,
-    validation_rate: 95,
-  },
-};
-
 const componentLabels: { key: keyof ScoreData["components"]; label: string; max: number }[] = [
   { key: "reputation", label: "Reputation", max: 350 },
   { key: "volume", label: "Volume", max: 250 },
@@ -80,6 +68,7 @@ export default function Demo() {
   );
   const [loading, setLoading] = useState(false);
   const [scoreData, setScoreData] = useState<ScoreData | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const [displayScore, setDisplayScore] = useState(0);
   const [barsVisible, setBarsVisible] = useState(false);
   const [jsonOpen, setJsonOpen] = useState(false);
@@ -107,35 +96,42 @@ export default function Demo() {
     };
   }, []);
 
-  const handleQuery = async () => {
-    if (!address.trim()) return;
+  const fetchScore = async (addr: string) => {
+    if (!addr.trim()) return;
     setLoading(true);
     setScoreData(null);
+    setError(null);
     setDisplayScore(0);
     setBarsVisible(false);
     setJsonOpen(false);
 
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/v0/score/${address.trim()}`
+        `${process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"}/v0/score/${addr.trim()}`
       );
-      if (!res.ok) throw new Error("Not found");
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail || `Error ${res.status}`);
+      }
       const data: ScoreData = await res.json();
       setScoreData(data);
       animateScore(data.score);
       setTimeout(() => setBarsVisible(true), 200);
-    } catch {
-      // Use mock data for demo purposes when API is unavailable
-      setScoreData(MOCK_SCORE);
-      animateScore(MOCK_SCORE.score);
-      setTimeout(() => setBarsVisible(true), 200);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Failed to fetch score.");
     } finally {
       setLoading(false);
     }
   };
 
-  const isUnrated =
-    scoreData && (scoreData.score === 0 || scoreData.tier === "Unrated");
+  useEffect(() => {
+    fetchScore("0x8004A818BFB912233c491871b3d84c89A494BD9e");
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const handleQuery = () => fetchScore(address);
+
+  const isUnrated = scoreData && scoreData.tier === "Unrated" && scoreData.score === 0;
 
   return (
     <section id="demo" className="py-24 px-4">
@@ -192,6 +188,11 @@ export default function Demo() {
             </div>
           )}
 
+          {/* Error state */}
+          {error && !loading && (
+            <p className="mt-6 text-red-400 text-sm font-mono">{error}</p>
+          )}
+
           {/* Score card */}
           {scoreData && !loading && (
             <div className="mt-8">
@@ -210,7 +211,7 @@ export default function Demo() {
                   {/* Left: score */}
                   <div>
                     <div
-                      className={`text-[80px] font-mono font-bold leading-none ${getScoreColor(scoreData.score)}`}
+                      className={`text-[80px] font-mono font-bold leading-none ${getScoreColor(scoreData.tier)}`}
                     >
                       {displayScore}
                     </div>
@@ -227,13 +228,19 @@ export default function Demo() {
                         {scoreData.confidence}
                       </span>
                     </p>
+                    {scoreData.tier === "Unrated" && (
+                      <p className="text-sp-muted text-xs italic mt-2">
+                        No ERC-8004 history found for this address. Agents must
+                        register on-chain to receive a score.
+                      </p>
+                    )}
                   </div>
 
                   {/* Right: component bars */}
                   <div>
                     {componentLabels.map(({ key, label, max }) => {
                       const value = scoreData.components[key];
-                      const pct = Math.round((value / max) * 100);
+                      const pct = Math.min(100, Math.round((value / max) * 100));
                       return (
                         <div key={key} className="mb-3">
                           <div className="flex items-center justify-between">
