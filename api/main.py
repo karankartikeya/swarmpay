@@ -3,6 +3,7 @@ from datetime import datetime, timezone
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
+from mangum import Mangum
 
 from chain import get_agent_feedback, get_identity, get_payment_history, is_valid_address
 
@@ -79,3 +80,6 @@ def get_agent_identity(agent_address: str):
     if not is_valid_address(agent_address):
         raise HTTPException(status_code=400, detail="Invalid Ethereum address")
     return get_identity(agent_address)
+
+
+handler = Mangum(app, lifespan="off")
