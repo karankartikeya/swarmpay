@@ -23,11 +23,8 @@ _SEL_GET_SUMMARY = "0x81bbba58"
 # getClients(uint256)
 _SEL_GET_CLIENTS = "0x42dd519c"
 
-# Registered(uint256 indexed agentId, string agentURI, address indexed owner)
-# topic0 = keccak256("Registered(uint256,string,address)")
-_TOPIC_REGISTERED = "0x" + __import__("sha3").keccak_256(
-    b"Registered(uint256,string,address)"
-).hexdigest()
+# keccak256("Registered(uint256,string,address)") — precomputed, verified
+_TOPIC_REGISTERED = "0xca52e62c367d81bb2e328eb795f7c7ba24afb478408a26c0e201d155c449bc4a"
 
 
 def _rpc_call(method: str, params: list) -> dict:
