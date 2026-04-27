@@ -16,7 +16,7 @@ Agent credit scoring for the x402 payment ecosystem.
 cd api
 python -m venv .venv && source .venv/bin/activate
 pip install -e .
-uvicorn main:app --reload
+uvicorn api.index:app --reload
 ```
 
 Swagger UI: http://localhost:8000/docs
