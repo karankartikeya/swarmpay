@@ -64,7 +64,7 @@ const componentLabels: { key: keyof ScoreData["components"]; label: string; max:
 
 export default function Demo() {
   const [address, setAddress] = useState(
-    "0x8004A818BFB912233c491871b3d84c89A494BD9e"
+    "0x637d1d444925bdd26a1df620e56b16ca0ce98eb2"
   );
   const [loading, setLoading] = useState(false);
   const [scoreData, setScoreData] = useState<ScoreData | null>(null);
@@ -125,7 +125,7 @@ export default function Demo() {
   };
 
   useEffect(() => {
-    fetchScore("0x8004A818BFB912233c491871b3d84c89A494BD9e");
+    fetchScore("0x637d1d444925bdd26a1df620e56b16ca0ce98eb2");
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
