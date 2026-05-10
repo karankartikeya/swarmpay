@@ -207,6 +207,6 @@ def get_payment_history(agent_address: str) -> dict:
     try:
         resp = _rpc_call("eth_getTransactionCount", [agent_address, "latest"])
         raw = resp.get("result", "0x0")
-        return {"tx_count": int(raw, 16), "source": "x402-proxy"}
+        return {"tx_count": int(raw, 16), "source": "transaction_history"}
     except Exception:
-        return {"tx_count": 0, "source": "x402-proxy"}
+        return {"tx_count": 0, "source": "transaction_history"}
