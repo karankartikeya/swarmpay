@@ -26,7 +26,7 @@ export default function ApiSnippet() {
               <code>
                 <span className="text-sp-primary">curl</span>{" "}
                 <span className="text-green-400">
-                  https://api.swarmpay.dev/v0/score/
+                  https://api.swarmpay.tech/v0/score/
                   <span className="text-sp-muted">{"{agent_address}"}</span>
                 </span>
                 {"\n\n"}
@@ -40,7 +40,7 @@ export default function ApiSnippet() {
                 <span className="text-sp-muted">\</span>
                 {"\n     "}
                 <span className="text-green-400">
-                  https://api.swarmpay.dev/v0/score/
+                  https://api.swarmpay.tech/v0/score/
                   <span className="text-sp-muted">{"{agent_address}"}</span>
                 </span>
               </code>
