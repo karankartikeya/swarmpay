@@ -205,7 +205,7 @@ def _recover_signer(digest: bytes, signature_hex: str) -> str:
         pub_key = keys.Signature(vrs=(v, r, s)).recover_public_key_from_msg_hash(
             digest
         )
-        return "0x" + pub_key.to_checksum_address()
+        return pub_key.to_checksum_address()
     except ImportError:
         raise RuntimeError(
             "eth-account / eth-keys not installed. "
