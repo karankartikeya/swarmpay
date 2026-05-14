@@ -6,7 +6,7 @@ const AGENT_ADDRESS = "0x572b8caf4FbEAC5358946acD2C5EFfeeB035D028";
 const BAD_AGENT_ADDRESS = "0x0d5CFf2655FbDA89dF5f767335099eeFEEe55A2D";
 const MERCHANT_ADDRESS = "0xb194262C09f89F726172d5E29a4bb18f11403a52";
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
-const MERCHANT_URL = "http://localhost:9000";
+const MERCHANT_URL = process.env.NEXT_PUBLIC_MERCHANT_URL ?? "http://localhost:9000";
 
 const STEPS = [
   "Agent calls /data endpoint",

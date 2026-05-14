@@ -47,7 +47,7 @@ app = FastAPI(title="SwarmPay x402 Merchant Demo")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://swarmpay.tech", "http://localhost:3000", "http://localhost:3001"],
+    allow_origins=["https://swarmpay.tech", "https://www.swarmpay.tech", "http://localhost:3000"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
