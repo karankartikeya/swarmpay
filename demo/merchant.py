@@ -47,7 +47,7 @@ app = FastAPI(title="SwarmPay x402 Merchant Demo")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=["https://swarmpay.tech", "http://localhost:3000", "http://localhost:3001"],
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -287,7 +287,7 @@ def verify_erc3009_payment(payload: dict) -> tuple[bool, str]:
 _IDENTITY_REGISTRY  = "0x24c1F275a5b789A6537D63f921D923c5b44937a3"
 _REPUTATION_REGISTRY = "0x7E2fbDb30Eb42693a3811C9AbEE9694855D275cF"
 _BASE_RPC = os.getenv("BASE_RPC_URL", "https://mainnet.base.org")
-_ABI_DIR = Path(__file__).parent.parent / "api" / "abi"
+_ABI_DIR = Path(__file__).parent / "abi"
 
 
 def _load_abi(name: str) -> list:
@@ -325,8 +325,9 @@ def _write_feedback_sync(payer_address: str) -> tuple[str | None, bool]:
         )
 
         # Resolve payer → agentId via chain.get_identity (ownerOf scan).
+        # chain.py lives alongside merchant.py in the same directory.
         import sys
-        sys.path.insert(0, str(Path(__file__).parent.parent / "api"))
+        sys.path.insert(0, str(Path(__file__).parent))
         from chain import get_identity as _get_identity
         identity_result = _get_identity(payer_address)
         if not identity_result.get("registered") or identity_result.get("token_id") is None:
