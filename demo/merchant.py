@@ -556,6 +556,35 @@ async def demo_run(agent: str = _AGENT_ADDRESS):
     )
 
 
+_BAD_AGENT_STEPS = [
+    (1, "Agent calls /data endpoint", 0),
+    (2, "Server returns HTTP 402", 400),
+    (3, "Agent parses payment requirements", 800),
+    (4, "ERC-3009 signature constructed", 1400),
+    (5, "Payment proof submitted", 2000),
+    (6, "Merchant rejected — low trust score", 2600),
+]
+
+
+@app.get("/demo/run-bad")
+async def demo_run_bad():
+    async def stream():
+        start = time.time()
+        for step, label, ms in _BAD_AGENT_STEPS:
+            target = start + ms / 1000
+            await asyncio.sleep(max(0, target - time.time()))
+            event: dict = {"step": step, "label": label, "ms": ms}
+            if step == 6:
+                event["rejected"] = True
+            yield f"data: {json.dumps(event)}\n\n"
+
+    return StreamingResponse(
+        stream(),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
+    )
+
+
 @app.get("/")
 async def root():
     return {

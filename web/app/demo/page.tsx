@@ -19,7 +19,7 @@ const STEPS = [
   "Reputation score updated on-chain",
 ];
 
-type Status = "IDLE" | "PAYING" | "DONE";
+type Status = "IDLE" | "PAYING" | "DONE" | "REJECTED";
 type AgentKey = "good" | "bad";
 
 function trunc(addr: string) {
@@ -51,6 +51,7 @@ export default function DemoDashboard() {
   const [selectedAgent, setSelectedAgent] = useState<AgentKey>("good");
   const [status, setStatus]   = useState<Status>("IDLE");
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
+  const [rejectedStep, setRejectedStep] = useState<number | null>(null);
   const [stepMs, setStepMs]   = useState<Record<number, number>>({});
   const [elapsed, setElapsed] = useState(0);
   const [usdcReceived, setUsdcReceived] = useState(0);
@@ -92,19 +93,37 @@ export default function DemoDashboard() {
     setRunning(true);
     setStatus("PAYING");
     setCompletedSteps(new Set());
+    setRejectedStep(null);
     setStepMs({});
     setScoreAtPayment(null);
     startTimer();
 
-    const agentAddr = selectedAgent === "good" ? AGENT_ADDRESS : BAD_AGENT_ADDRESS;
-    const es = new EventSource(`${MERCHANT_URL}/demo/run?agent=${agentAddr}`);
+    const url = selectedAgent === "bad"
+      ? `${MERCHANT_URL}/demo/run-bad`
+      : `${MERCHANT_URL}/demo/run?agent=${AGENT_ADDRESS}`;
+
+    const es = new EventSource(url);
     esRef.current = es;
 
     es.onmessage = (e) => {
       const data = JSON.parse(e.data) as {
         step: number; label: string; ms: number;
-        done?: boolean; score?: number; tier?: string;
+        done?: boolean; rejected?: boolean;
+        score?: number; tier?: string;
       };
+
+      // For rejected step: mark it separately, stop timer, set REJECTED status
+      if (data.rejected) {
+        setRejectedStep(data.step);
+        setStepMs((prev) => ({ ...prev, [data.step]: data.ms }));
+        stopTimer();
+        setElapsed(Date.now() - startRef.current);
+        setStatus("REJECTED");
+        setScoreAtPayment(0);
+        es.close();
+        setRunning(false);
+        return;
+      }
 
       setCompletedSteps((prev) => new Set([...prev, data.step]));
       setStepMs((prev) => ({ ...prev, [data.step]: data.ms }));
@@ -113,11 +132,11 @@ export default function DemoDashboard() {
         stopTimer();
         setElapsed(Date.now() - startRef.current);
         setStatus("DONE");
-        if (selectedAgent === "good") {
-          setUsdcReceived((u) => parseFloat((u + 0.001).toFixed(3)));
-          if (data.score != null) { setScore(data.score); setScoreAtPayment(data.score); if (data.tier) setTier(data.tier); }
-        } else {
-          if (data.score != null) { setBadScore(data.score); setScoreAtPayment(data.score); }
+        setUsdcReceived((u) => parseFloat((u + 0.001).toFixed(3)));
+        if (data.score != null) {
+          setScore(data.score);
+          setScoreAtPayment(data.score);
+          if (data.tier) setTier(data.tier);
         }
         es.close();
         setRunning(false);
@@ -183,8 +202,9 @@ export default function DemoDashboard() {
         <div>
           <Label>Status</Label>
           <span className={`inline-flex items-center gap-2 text-xs px-3 py-1.5 rounded border uppercase tracking-widest ${
-            status === "PAYING" ? "border-blue-500 text-blue-400"
-            : status === "DONE" ? "border-green-500 text-green-400"
+            status === "PAYING"   ? "border-blue-500 text-blue-400"
+            : status === "DONE"  ? "border-green-500 text-green-400"
+            : status === "REJECTED" ? "border-red-500 text-red-400"
             : "border-gray-600 text-gray-400"
           }`}>
             {status === "PAYING" && <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />}
@@ -215,13 +235,32 @@ export default function DemoDashboard() {
           {STEPS.map((label, i) => {
             const step = i + 1;
             const done = completedSteps.has(step);
+            const isRejected = rejectedStep === step;
+            // Steps after rejection are dimmed and never light up
+            const afterRejection = rejectedStep != null && step > rejectedStep;
+
+            const circleStyle = isRejected
+              ? { background: "#7F1D1D", borderColor: "#E74C3C", color: "#fff" }
+              : done
+              ? { background: "#27AE60", borderColor: "#27AE60", color: "#fff" }
+              : { background: "transparent", borderColor: "#1C2333", color: "#8B949E" };
+
+            // Label for rejected step comes from SSE, not STEPS array
+            const displayLabel = isRejected
+              ? "Merchant rejected — low trust score"
+              : label;
+
             return (
-              <div key={step} className="flex items-center gap-3">
+              <div key={step} className="flex items-center gap-3"
+                style={{ opacity: afterRejection ? 0.2 : 1 }}>
                 <div className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs border transition-all duration-300"
-                  style={done
-                    ? { background: "#27AE60", borderColor: "#27AE60", color: "#fff" }
-                    : { background: "transparent", borderColor: "#1C2333", color: "#8B949E" }}>
-                  {done ? (
+                  style={circleStyle}>
+                  {isRejected ? (
+                    <svg width="10" height="10" viewBox="0 0 10 10" fill="none">
+                      <path d="M2 2l6 6M8 2l-6 6" stroke="white" strokeWidth="1.5"
+                        strokeLinecap="round" />
+                    </svg>
+                  ) : done ? (
                     <svg width="10" height="8" viewBox="0 0 10 8" fill="none">
                       <path d="M1 4l3 3 5-6" stroke="white" strokeWidth="1.5"
                         strokeLinecap="round" strokeLinejoin="round" />
@@ -229,12 +268,12 @@ export default function DemoDashboard() {
                   ) : step}
                 </div>
                 <span className="text-sm flex-1 transition-colors duration-300"
-                  style={{ color: done ? "#E6EDF3" : "#8B949E" }}>
-                  {label}
+                  style={{ color: isRejected ? "#F87171" : done ? "#E6EDF3" : "#8B949E" }}>
+                  {displayLabel}
                 </span>
                 <span className="text-xs" style={{
-                  color: "#8B949E",
-                  opacity: done && stepMs[step] != null ? 1 : 0,
+                  color: isRejected ? "#F87171" : "#8B949E",
+                  opacity: (done || isRejected) && stepMs[step] != null ? 1 : 0,
                   minWidth: 52, textAlign: "right",
                 }}>
                   {stepMs[step] != null ? `${stepMs[step]}ms` : ""}
@@ -248,7 +287,7 @@ export default function DemoDashboard() {
         <div>
           <Label>Run As Agent</Label>
           <div className="flex gap-2">
-            <button onClick={() => !running && setSelectedAgent("good")}
+            <button onClick={() => { if (!running) { setSelectedAgent("good"); setStatus("IDLE"); setCompletedSteps(new Set()); setRejectedStep(null); setStepMs({}); setElapsed(0); } }}
               className="flex-1 py-2 text-xs uppercase tracking-widest rounded border transition-all duration-150"
               style={{
                 borderColor: selectedAgent === "good" ? "#2F80ED" : "#1C2333",
@@ -258,7 +297,7 @@ export default function DemoDashboard() {
               }}>
               {trunc(AGENT_ADDRESS)}
             </button>
-            <button onClick={() => !running && setSelectedAgent("bad")}
+            <button onClick={() => { if (!running) { setSelectedAgent("bad"); setStatus("IDLE"); setCompletedSteps(new Set()); setRejectedStep(null); setStepMs({}); setElapsed(0); } }}
               className="flex-1 py-2 text-xs uppercase tracking-widest rounded border transition-all duration-150"
               style={{
                 borderColor: selectedAgent === "bad" ? "#E74C3C" : "#1C2333",
@@ -302,26 +341,38 @@ export default function DemoDashboard() {
 
         <div>
           <Label>Agent Score at Payment</Label>
-          <p className="font-bold leading-none" style={{ fontSize: 40, color: "#E6EDF3" }}>
-            {scoreAtPayment ?? "—"}
+          <p className="font-bold leading-none" style={{
+            fontSize: 40,
+            color: isBad ? "#E74C3C" : "#E6EDF3",
+          }}>
+            {isBad ? 0 : (scoreAtPayment ?? "—")}
           </p>
-          {scoreAtPayment != null && (
-            <p className="text-xs mt-1" style={{ color: "#8B949E" }}>
-              {trunc(isBad ? BAD_AGENT_ADDRESS : AGENT_ADDRESS)}
-            </p>
-          )}
+          <p className="text-xs mt-1" style={{ color: "#8B949E" }}>
+            {trunc(isBad ? BAD_AGENT_ADDRESS : AGENT_ADDRESS)}
+          </p>
         </div>
 
         <div>
           <Label>Serve This Agent?</Label>
-          {status !== "DONE" ? (
+          {isBad ? (
+            /* Bad agent: always show NO immediately */
+            <div className="flex items-center justify-between">
+              <span className="text-xs" style={{ color: "#8B949E" }}>
+                {trunc(BAD_AGENT_ADDRESS)}
+              </span>
+              <span className="text-sm font-bold px-3 py-0.5 rounded border"
+                style={{ color: "#E74C3C", borderColor: "#E74C3C" }}>
+                ❌ NO
+              </span>
+            </div>
+          ) : status !== "DONE" ? (
             <span style={{ color: "#8B949E" }}>—</span>
           ) : (
             <div className="flex items-center justify-between">
               <span className="text-xs" style={{ color: "#8B949E" }}>
-                {trunc(isBad ? BAD_AGENT_ADDRESS : AGENT_ADDRESS)}
+                {trunc(AGENT_ADDRESS)}
               </span>
-              {!isBad && (scoreAtPayment ?? 0) > 400 ? (
+              {(scoreAtPayment ?? 0) > 400 ? (
                 <span className="text-sm font-bold px-3 py-0.5 rounded border"
                   style={{ color: "#27AE60", borderColor: "#27AE60" }}>
                   ✅ YES
