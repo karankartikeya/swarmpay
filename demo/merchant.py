@@ -471,10 +471,10 @@ def _score_tier(score: int | None) -> str:
     return "A"
 
 
-def _fetch_score_sync() -> int | None:
+def _fetch_score_for_sync(agent_address: str) -> int | None:
     import urllib.request
 
-    url = f"{_SCORE_API_URL}/v0/score/{_AGENT_ADDRESS}"
+    url = f"{_SCORE_API_URL}/v0/score/{agent_address}"
     try:
         with urllib.request.urlopen(url, timeout=5) as r:
             data = json.loads(r.read())
@@ -483,22 +483,27 @@ def _fetch_score_sync() -> int | None:
         return None
 
 
-async def _fetch_score() -> int | None:
+async def _fetch_score_for(agent_address: str) -> int | None:
     loop = asyncio.get_event_loop()
-    return await loop.run_in_executor(None, _fetch_score_sync)
+    return await loop.run_in_executor(None, _fetch_score_for_sync, agent_address)
+
+
+# Keep old helpers as aliases for /demo/status backward compat
+async def _fetch_score() -> int | None:
+    return await _fetch_score_for(_AGENT_ADDRESS)
 
 
 @app.get("/demo/status")
-async def demo_status():
-    score = await _fetch_score()
-    return {"score": score, "tier": _score_tier(score), "address": _AGENT_ADDRESS}
+async def demo_status(agent: str = _AGENT_ADDRESS):
+    score = await _fetch_score_for(agent)
+    return {"score": score, "tier": _score_tier(score), "address": agent}
 
 
 @app.get("/demo/run")
-async def demo_run():
+async def demo_run(agent: str = _AGENT_ADDRESS):
     async def stream():
         # Capture score before the run so we can detect the on-chain change.
-        score_before = await _fetch_score()
+        score_before = await _fetch_score_for(agent)
         start = time.time()
 
         for step, label, ms in _DEMO_STEPS[:-1]:
@@ -512,20 +517,19 @@ async def demo_run():
             # we trigger the reputation write directly here.
             if step == 7:
                 loop = asyncio.get_event_loop()
-                loop.run_in_executor(None, _write_feedback_sync, _AGENT_ADDRESS)
+                loop.run_in_executor(None, _write_feedback_sync, agent)
 
         # Poll until score increases above score_before, or 60 s timeout.
         # We only accept a score HIGHER than score_before as a valid update —
-        # the score API can flap low when the RPC call times out, which would
-        # otherwise be misread as a real change.
+        # the score API can flap low when the RPC call times out.
         deadline = time.time() + 60
         final_score = score_before
         while time.time() < deadline:
             await asyncio.sleep(2)
-            new_score = await _fetch_score()
+            new_score = await _fetch_score_for(agent)
             logger.info(
-                "score poll: before=%s current=%s elapsed=%.1fs",
-                score_before, new_score, time.time() - start,
+                "score poll: agent=%s before=%s current=%s elapsed=%.1fs",
+                agent[:10], score_before, new_score, time.time() - start,
             )
             if new_score is not None and new_score > (score_before or 0):
                 final_score = new_score

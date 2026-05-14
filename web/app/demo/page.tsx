@@ -20,6 +20,7 @@ const STEPS = [
 ];
 
 type Status = "IDLE" | "PAYING" | "DONE";
+type AgentKey = "good" | "bad";
 
 function trunc(addr: string) {
   return addr.slice(0, 6) + "..." + addr.slice(-4);
@@ -55,6 +56,9 @@ export default function DemoDashboard() {
 
   // Bad agent
   const [badScore, setBadScore] = useState<number | null>(null);
+
+  // Selected agent for the demo run
+  const [selectedAgent, setSelectedAgent] = useState<AgentKey>("good");
 
   // Flow state
   const [status, setStatus] = useState<Status>("IDLE");
@@ -121,7 +125,8 @@ export default function DemoDashboard() {
     setScoreAtPayment(null);
     startTimer();
 
-    const es = new EventSource(`${MERCHANT_URL}/demo/run`);
+    const agentAddr = selectedAgent === "good" ? AGENT_ADDRESS : BAD_AGENT_ADDRESS;
+    const es = new EventSource(`${MERCHANT_URL}/demo/run?agent=${agentAddr}`);
     esRef.current = es;
 
     es.onmessage = (e) => {
@@ -141,11 +146,17 @@ export default function DemoDashboard() {
         stopTimer();
         setElapsed(Date.now() - startRef.current);
         setStatus("DONE");
-        setUsdcReceived((u) => parseFloat((u + 0.001).toFixed(3)));
-        if (data.score != null) {
-          setScore(data.score);
-          setScoreAtPayment(data.score);
-          if (data.tier) setTier(data.tier);
+        if (selectedAgent === "good") {
+          setUsdcReceived((u) => parseFloat((u + 0.001).toFixed(3)));
+          if (data.score != null) {
+            setScore(data.score);
+            setScoreAtPayment(data.score);
+            if (data.tier) setTier(data.tier);
+          }
+        } else {
+          // Bad agent run: update bad score, no USDC (payment rejected)
+          if (data.score != null) setBadScore(data.score);
+          setScoreAtPayment(data.score ?? badScore);
         }
         es.close();
         setRunning(false);
@@ -180,8 +191,13 @@ export default function DemoDashboard() {
 
       {/* ── PANEL 1: GOOD AGENT ── */}
       <div
-        className="flex flex-col border-r p-8 gap-8"
-        style={{ background: "#0D1117", borderColor: "#1C2333", width: "19%" }}
+        className="flex flex-col border-r p-8 gap-8 transition-all duration-200"
+        style={{
+          background: selectedAgent === "good" && !running ? "#0F1820" : "#0D1117",
+          borderColor: selectedAgent === "good" ? "#2F80ED" : "#1C2333",
+          width: "19%",
+          boxShadow: selectedAgent === "good" ? "inset 0 0 0 1px #2F80ED22" : "none",
+        }}
       >
         <div>
           <Label>AI Agent</Label>
@@ -288,25 +304,61 @@ export default function DemoDashboard() {
           })}
         </div>
 
+        {/* Agent selector */}
+        <div>
+          <Label>Run As Agent</Label>
+          <div className="flex gap-2">
+            <button
+              onClick={() => !running && setSelectedAgent("good")}
+              className="flex-1 py-2 text-xs uppercase tracking-widest rounded border transition-all duration-150"
+              style={{
+                borderColor: selectedAgent === "good" ? "#2F80ED" : "#1C2333",
+                background: selectedAgent === "good" ? "#1E3A5F" : "transparent",
+                color: selectedAgent === "good" ? "#60A5FA" : "#8B949E",
+                cursor: running ? "not-allowed" : "pointer",
+              }}
+            >
+              {trunc(AGENT_ADDRESS)}
+            </button>
+            <button
+              onClick={() => !running && setSelectedAgent("bad")}
+              className="flex-1 py-2 text-xs uppercase tracking-widest rounded border transition-all duration-150"
+              style={{
+                borderColor: selectedAgent === "bad" ? "#E74C3C" : "#1C2333",
+                background: selectedAgent === "bad" ? "#3B1010" : "transparent",
+                color: selectedAgent === "bad" ? "#F87171" : "#8B949E",
+                cursor: running ? "not-allowed" : "pointer",
+              }}
+            >
+              {trunc(BAD_AGENT_ADDRESS)}
+            </button>
+          </div>
+        </div>
+
         <button
           onClick={runDemo}
           disabled={running}
           className="w-full py-4 text-sm uppercase font-bold tracking-widest rounded transition-all duration-200"
           style={{
-            background: running ? "#1C2333" : "#2F80ED",
+            background: running ? "#1C2333" : selectedAgent === "bad" ? "#7F1D1D" : "#2F80ED",
             color: running ? "#8B949E" : "#fff",
             cursor: running ? "not-allowed" : "pointer",
             border: "none",
           }}
         >
-          {running ? "RUNNING..." : "RUN DEMO"}
+          {running ? "RUNNING..." : `RUN DEMO`}
         </button>
       </div>
 
       {/* ── PANEL 3: BAD AGENT ── */}
       <div
-        className="flex flex-col border-r p-8 gap-8"
-        style={{ background: "#0D1117", borderColor: "#1C2333", width: "19%" }}
+        className="flex flex-col border-r p-8 gap-8 transition-all duration-200"
+        style={{
+          background: selectedAgent === "bad" && !running ? "#180F0F" : "#0D1117",
+          borderColor: selectedAgent === "bad" ? "#E74C3C" : "#1C2333",
+          width: "19%",
+          boxShadow: selectedAgent === "bad" ? "inset 0 0 0 1px #E74C3C22" : "none",
+        }}
       >
         <div>
           <Label red>Unverified Agent</Label>
@@ -375,6 +427,11 @@ export default function DemoDashboard() {
           <p className="font-bold leading-none" style={{ fontSize: 40, color: "#E6EDF3" }}>
             {scoreAtPayment ?? "—"}
           </p>
+          {scoreAtPayment != null && (
+            <p className="text-xs mt-1" style={{ color: "#8B949E" }}>
+              {trunc(selectedAgent === "good" ? AGENT_ADDRESS : BAD_AGENT_ADDRESS)}
+            </p>
+          )}
         </div>
 
         <div>
