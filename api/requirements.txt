@@ -4,3 +4,5 @@ httpx
 python-dotenv
 pydantic
 mangum
+web3>=6.0.0
+eth-account>=0.11.0
