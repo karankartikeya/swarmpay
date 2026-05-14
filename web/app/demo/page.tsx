@@ -436,43 +436,30 @@ export default function DemoDashboard() {
 
         <div>
           <Label>Serve This Agent?</Label>
-
-          {/* Good agent */}
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs" style={{ color: "#8B949E" }}>
-              {trunc(AGENT_ADDRESS)}
-            </span>
-            {score == null ? (
-              <span className="text-xs" style={{ color: "#8B949E" }}>—</span>
-            ) : score > 400 ? (
-              <span
-                className="text-sm font-bold px-3 py-0.5 rounded border"
-                style={{ color: "#27AE60", borderColor: "#27AE60" }}
-              >
-                ✅ YES
+          {status !== "DONE" ? (
+            <span className="text-xs" style={{ color: "#8B949E" }}>—</span>
+          ) : (
+            <div className="flex items-center justify-between">
+              <span className="text-xs" style={{ color: "#8B949E" }}>
+                {trunc(selectedAgent === "good" ? AGENT_ADDRESS : BAD_AGENT_ADDRESS)}
               </span>
-            ) : (
-              <span
-                className="text-sm font-bold px-3 py-0.5 rounded border"
-                style={{ color: "#E74C3C", borderColor: "#E74C3C" }}
-              >
-                ❌ NO
-              </span>
-            )}
-          </div>
-
-          {/* Bad agent — always NO */}
-          <div className="flex items-center justify-between">
-            <span className="text-xs" style={{ color: "#8B949E" }}>
-              {trunc(BAD_AGENT_ADDRESS)}
-            </span>
-            <span
-              className="text-sm font-bold px-3 py-0.5 rounded border"
-              style={{ color: "#E74C3C", borderColor: "#E74C3C" }}
-            >
-              ❌ NO
-            </span>
-          </div>
+              {selectedAgent === "good" && (scoreAtPayment ?? 0) > 400 ? (
+                <span
+                  className="text-sm font-bold px-3 py-0.5 rounded border"
+                  style={{ color: "#27AE60", borderColor: "#27AE60" }}
+                >
+                  ✅ YES
+                </span>
+              ) : (
+                <span
+                  className="text-sm font-bold px-3 py-0.5 rounded border"
+                  style={{ color: "#E74C3C", borderColor: "#E74C3C" }}
+                >
+                  ❌ NO
+                </span>
+              )}
+            </div>
+          )}
         </div>
       </div>
     </div>
