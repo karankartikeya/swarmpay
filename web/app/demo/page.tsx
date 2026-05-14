@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 
 const AGENT_ADDRESS = "0x572b8caf4FbEAC5358946acD2C5EFfeeB035D028";
+const BAD_AGENT_ADDRESS = "0x0d5CFf2655FbDA89dF5f767335099eeFEEe55A2D";
 const MERCHANT_ADDRESS = "0xb194262C09f89F726172d5E29a4bb18f11403a52";
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 const MERCHANT_URL = "http://localhost:9000";
@@ -20,11 +21,11 @@ const STEPS = [
 
 type Status = "IDLE" | "PAYING" | "DONE";
 
-function truncate(addr: string) {
+function trunc(addr: string) {
   return addr.slice(0, 6) + "..." + addr.slice(-4);
 }
 
-function tierBadge(tier: string | null) {
+function tierBadge(tier: string | null): { label: string; bg: string; color: string } {
   if (!tier || tier === "Unrated")
     return { label: "Unrated", bg: "#1C2333", color: "#8B949E" };
   if (tier === "AAA") return { label: "AAA", bg: "#065F46", color: "#6EE7B7" };
@@ -32,20 +33,30 @@ function tierBadge(tier: string | null) {
   return { label: tier, bg: "#1E3A5F", color: "#60A5FA" };
 }
 
-function Label({ children }: { children: React.ReactNode }) {
+function Label({ children, red }: { children: React.ReactNode; red?: boolean }) {
   return (
     <p
       className="text-xs uppercase tracking-widest font-mono mb-3"
-      style={{ color: "#8B949E" }}
+      style={{ color: red ? "#E74C3C" : "#8B949E" }}
     >
       {children}
     </p>
   );
 }
 
+function Divider() {
+  return <div className="w-px h-full" style={{ background: "#1C2333" }} />;
+}
+
 export default function DemoDashboard() {
+  // Good agent
   const [score, setScore] = useState<number | null>(null);
   const [tier, setTier] = useState<string | null>(null);
+
+  // Bad agent
+  const [badScore, setBadScore] = useState<number | null>(null);
+
+  // Flow state
   const [status, setStatus] = useState<Status>("IDLE");
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [stepMs, setStepMs] = useState<Record<number, number>>({});
@@ -62,17 +73,28 @@ export default function DemoDashboard() {
     try {
       const res = await fetch(`${API_URL}/v0/score/${AGENT_ADDRESS}`);
       if (res.ok) {
-        const data = await res.json();
-        setScore(data.score ?? null);
-        setTier(data.tier ?? null);
+        const d = await res.json();
+        setScore(d.score ?? null);
+        setTier(d.tier ?? null);
+      }
+    } catch {}
+  }
+
+  async function fetchBadScore() {
+    try {
+      const res = await fetch(`${API_URL}/v0/score/${BAD_AGENT_ADDRESS}`);
+      if (res.ok) {
+        const d = await res.json();
+        setBadScore(d.score ?? 0);
       }
     } catch {
-      // silently fail — score stays as last known value
+      setBadScore(0);
     }
   }
 
   useEffect(() => {
     fetchScore();
+    fetchBadScore();
   }, []);
 
   function startTimer() {
@@ -92,8 +114,6 @@ export default function DemoDashboard() {
 
   function runDemo() {
     if (running) return;
-
-    // Reset state
     setRunning(true);
     setStatus("PAYING");
     setCompletedSteps(new Set());
@@ -118,9 +138,8 @@ export default function DemoDashboard() {
       setStepMs((prev) => ({ ...prev, [data.step]: data.ms }));
 
       if (data.done) {
-        const finalMs = Date.now() - startRef.current;
         stopTimer();
-        setElapsed(finalMs);
+        setElapsed(Date.now() - startRef.current);
         setStatus("DONE");
         setUsdcReceived((u) => parseFloat((u + 0.001).toFixed(3)));
         if (data.score != null) {
@@ -148,6 +167,7 @@ export default function DemoDashboard() {
       className="relative flex h-screen w-screen overflow-hidden font-mono"
       style={{ background: "#080B10", color: "#E6EDF3" }}
     >
+      {/* Home link */}
       <a
         href="/"
         className="absolute top-4 left-6 z-10 text-xs font-mono transition-colors"
@@ -157,25 +177,23 @@ export default function DemoDashboard() {
       >
         ← Home
       </a>
-      {/* ── PANEL 1: AI AGENT ── */}
+
+      {/* ── PANEL 1: GOOD AGENT ── */}
       <div
-        className="flex flex-col w-1/3 border-r p-10 gap-10"
-        style={{ background: "#0D1117", borderColor: "#1C2333" }}
+        className="flex flex-col border-r p-8 gap-8"
+        style={{ background: "#0D1117", borderColor: "#1C2333", width: "19%" }}
       >
         <div>
           <Label>AI Agent</Label>
-          <p className="text-sm" style={{ color: "#2F80ED" }}>
-            {truncate(AGENT_ADDRESS)}
+          <p className="text-xs" style={{ color: "#2F80ED" }}>
+            {trunc(AGENT_ADDRESS)}
           </p>
         </div>
 
         <div>
           <Label>Reputation Score</Label>
-          <div className="flex items-center gap-4">
-            <span
-              className="font-bold leading-none"
-              style={{ fontSize: 72, color: "#E6EDF3" }}
-            >
+          <div className="flex items-center gap-3 flex-wrap">
+            <span className="font-bold leading-none" style={{ fontSize: 56, color: "#E6EDF3" }}>
               {score ?? "—"}
             </span>
             {tier && (
@@ -208,10 +226,10 @@ export default function DemoDashboard() {
         </div>
       </div>
 
-      {/* ── PANEL 2: X402 PAYMENT FLOW ── */}
+      {/* ── PANEL 2: X402 FLOW ── */}
       <div
-        className="flex flex-col w-1/3 border-r p-10 gap-6"
-        style={{ background: "#0D1117", borderColor: "#1C2333" }}
+        className="flex flex-col border-r p-8 gap-6"
+        style={{ background: "#0D1117", borderColor: "#1C2333", width: "34%" }}
       >
         <div>
           <Label>X402 Payment Flow</Label>
@@ -220,27 +238,18 @@ export default function DemoDashboard() {
           </p>
         </div>
 
-        <div className="flex flex-col flex-1" style={{ gap: 16 }}>
+        <div className="flex flex-col flex-1" style={{ gap: 14 }}>
           {STEPS.map((label, i) => {
             const step = i + 1;
             const done = completedSteps.has(step);
             return (
               <div key={step} className="flex items-center gap-3">
-                {/* Circle */}
                 <div
                   className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center text-xs border transition-all duration-300"
                   style={
                     done
-                      ? {
-                          background: "#27AE60",
-                          borderColor: "#27AE60",
-                          color: "#fff",
-                        }
-                      : {
-                          background: "transparent",
-                          borderColor: "#1C2333",
-                          color: "#8B949E",
-                        }
+                      ? { background: "#27AE60", borderColor: "#27AE60", color: "#fff" }
+                      : { background: "transparent", borderColor: "#1C2333", color: "#8B949E" }
                   }
                 >
                   {done ? (
@@ -257,18 +266,14 @@ export default function DemoDashboard() {
                     step
                   )}
                 </div>
-
-                {/* Label */}
                 <span
                   className="text-sm flex-1 transition-colors duration-300"
                   style={{ color: done ? "#E6EDF3" : "#8B949E" }}
                 >
                   {label}
                 </span>
-
-                {/* Timestamp */}
                 <span
-                  className="text-xs transition-opacity duration-300"
+                  className="text-xs"
                   style={{
                     color: "#8B949E",
                     opacity: done && stepMs[step] != null ? 1 : 0,
@@ -283,7 +288,6 @@ export default function DemoDashboard() {
           })}
         </div>
 
-        {/* RUN DEMO button */}
         <button
           onClick={runDemo}
           disabled={running}
@@ -299,29 +303,68 @@ export default function DemoDashboard() {
         </button>
       </div>
 
-      {/* ── PANEL 3: API MERCHANT ── */}
+      {/* ── PANEL 3: BAD AGENT ── */}
       <div
-        className="flex flex-col w-1/3 p-10 gap-10"
-        style={{ background: "#0D1117" }}
+        className="flex flex-col border-r p-8 gap-8"
+        style={{ background: "#0D1117", borderColor: "#1C2333", width: "19%" }}
+      >
+        <div>
+          <Label red>Unverified Agent</Label>
+          <p className="text-xs" style={{ color: "#E74C3C" }}>
+            {trunc(BAD_AGENT_ADDRESS)}
+          </p>
+        </div>
+
+        <div>
+          <Label>Reputation Score</Label>
+          <div className="flex items-center gap-3 flex-wrap">
+            <span className="font-bold leading-none" style={{ fontSize: 56, color: "#E6EDF3" }}>
+              {badScore ?? "0"}
+            </span>
+            <span
+              className="text-xs font-bold px-2 py-1 rounded"
+              style={{ background: "#1C2333", color: "#8B949E" }}
+            >
+              Unrated
+            </span>
+          </div>
+          <p className="text-xs mt-2" style={{ color: "#E74C3C" }}>
+            Last attempt: signature replay detected
+          </p>
+        </div>
+
+        <div>
+          <Label>Status</Label>
+          <span className="inline-flex items-center gap-2 text-xs px-3 py-1.5 rounded border uppercase tracking-widest border-gray-600 text-gray-400">
+            IDLE
+          </span>
+        </div>
+
+        <div>
+          <Label>Payment Attempts</Label>
+          <p className="text-sm font-bold" style={{ color: "#E74C3C" }}>
+            3 failed attempts
+          </p>
+        </div>
+      </div>
+
+      {/* ── PANEL 4: MERCHANT ── */}
+      <div
+        className="flex flex-col p-8 gap-8"
+        style={{ background: "#0D1117", width: "28%" }}
       >
         <div>
           <Label>API Merchant</Label>
-          <p className="text-sm" style={{ color: "#2F80ED" }}>
-            {truncate(MERCHANT_ADDRESS)}
+          <p className="text-xs" style={{ color: "#2F80ED" }}>
+            {trunc(MERCHANT_ADDRESS)}
           </p>
         </div>
 
         <div>
           <Label>USDC Received</Label>
-          <p
-            className="font-bold leading-none"
-            style={{ fontSize: 56, color: "#27AE60" }}
-          >
+          <p className="font-bold leading-none" style={{ fontSize: 48, color: "#27AE60" }}>
             {usdcReceived.toFixed(3)}
-            <span
-              className="text-base font-normal ml-2"
-              style={{ color: "#8B949E" }}
-            >
+            <span className="text-sm font-normal ml-2" style={{ color: "#8B949E" }}>
               USDC
             </span>
           </p>
@@ -329,33 +372,50 @@ export default function DemoDashboard() {
 
         <div>
           <Label>Agent Score at Payment</Label>
-          <p
-            className="font-bold leading-none"
-            style={{ fontSize: 48, color: "#E6EDF3" }}
-          >
+          <p className="font-bold leading-none" style={{ fontSize: 40, color: "#E6EDF3" }}>
             {scoreAtPayment ?? "—"}
           </p>
         </div>
 
         <div>
           <Label>Serve This Agent?</Label>
-          {score == null ? (
-            <span style={{ color: "#8B949E" }}>—</span>
-          ) : score > 400 ? (
-            <span
-              className="text-2xl font-bold px-5 py-2 rounded border"
-              style={{ color: "#27AE60", borderColor: "#27AE60" }}
-            >
-              YES
+
+          {/* Good agent */}
+          <div className="flex items-center justify-between mb-3">
+            <span className="text-xs" style={{ color: "#8B949E" }}>
+              {trunc(AGENT_ADDRESS)}
             </span>
-          ) : (
+            {score == null ? (
+              <span className="text-xs" style={{ color: "#8B949E" }}>—</span>
+            ) : score > 400 ? (
+              <span
+                className="text-sm font-bold px-3 py-0.5 rounded border"
+                style={{ color: "#27AE60", borderColor: "#27AE60" }}
+              >
+                ✅ YES
+              </span>
+            ) : (
+              <span
+                className="text-sm font-bold px-3 py-0.5 rounded border"
+                style={{ color: "#E74C3C", borderColor: "#E74C3C" }}
+              >
+                ❌ NO
+              </span>
+            )}
+          </div>
+
+          {/* Bad agent — always NO */}
+          <div className="flex items-center justify-between">
+            <span className="text-xs" style={{ color: "#8B949E" }}>
+              {trunc(BAD_AGENT_ADDRESS)}
+            </span>
             <span
-              className="text-2xl font-bold px-5 py-2 rounded border"
+              className="text-sm font-bold px-3 py-0.5 rounded border"
               style={{ color: "#E74C3C", borderColor: "#E74C3C" }}
             >
-              NO
+              ❌ NO
             </span>
-          )}
+          </div>
         </div>
       </div>
     </div>
