@@ -295,15 +295,16 @@ def _load_abi(name: str) -> list:
         return json.load(f)
 
 
-def _write_feedback_sync(payer_address: str) -> None:
+def _write_feedback_sync(payer_address: str) -> tuple[str | None, bool]:
     """
-    Resolve payer_address → agentId, then call giveFeedback() from the
-    merchant wallet. Runs synchronously; called from a thread pool.
+    Resolve payer_address → agentId, submit giveFeedback(), wait for receipt.
+    Returns (tx_hash_hex, confirmed) so the caller can fire step 8 immediately
+    on-chain confirmation without waiting for the score API to propagate.
     """
     merchant_key = os.getenv("MERCHANT_PRIVATE_KEY", "").strip()
     if not merchant_key:
         logger.warning("MERCHANT_PRIVATE_KEY not set — skipping reputation feedback")
-        return
+        return None, False
 
     try:
         from web3 import Web3
@@ -312,56 +313,43 @@ def _write_feedback_sync(payer_address: str) -> None:
         w3 = Web3(Web3.HTTPProvider(_BASE_RPC))
         if not w3.is_connected():
             logger.warning("Cannot connect to RPC — skipping feedback")
-            return
+            return None, False
 
         if not merchant_key.startswith("0x"):
             merchant_key = "0x" + merchant_key
         merchant = Account.from_key(merchant_key)
 
         rep_abi = _load_abi("ReputationRegistry")
-
         reputation = w3.eth.contract(
             address=Web3.to_checksum_address(_REPUTATION_REGISTRY), abi=rep_abi
         )
 
-        # Resolve payer → agentId via chain.get_identity (uses ownerOf scan,
-        # avoids eth_getLogs which 413s on public Base RPC for large ranges).
+        # Resolve payer → agentId via chain.get_identity (ownerOf scan).
         import sys
         sys.path.insert(0, str(Path(__file__).parent.parent / "api"))
         from chain import get_identity as _get_identity
         identity_result = _get_identity(payer_address)
         if not identity_result.get("registered") or identity_result.get("token_id") is None:
-            logger.info("Payer %s not registered in IdentityRegistry — skipping feedback", payer_address)
-            return
+            logger.info("Payer %s not registered — skipping feedback", payer_address)
+            return None, False
 
         agent_id = identity_result["token_id"]
         logger.info("Writing feedback for agentId=%d (payer=%s)", agent_id, payer_address)
 
-        # Check merchant balance — need at least 0.00002 ETH for gas
         min_bal = w3.to_wei(0.00002, "ether")
         if w3.eth.get_balance(merchant.address) < min_bal:
-            logger.warning(
-                "Merchant wallet %s has insufficient ETH for feedback tx", merchant.address
-            )
-            return
+            logger.warning("Merchant wallet has insufficient ETH for feedback tx")
+            return None, False
 
         feedback_hash = bytes.fromhex(
-            hashlib.sha256(
-                f"{agent_id}:x402:{int(time.time())}".encode()
-            ).hexdigest()
+            hashlib.sha256(f"{agent_id}:x402:{int(time.time())}".encode()).hexdigest()
         )
 
         base_fee = w3.eth.get_block("latest")["baseFeePerGas"]
         priority = w3.to_wei(0.01, "gwei")
         fn = reputation.functions.giveFeedback(
-            agent_id,
-            80,            # value: int128 — successful payment = score 80
-            0,             # valueDecimals
-            "payment",     # tag1
-            "x402",        # tag2
-            _REPUTATION_REGISTRY,  # endpoint (self-referential for demo)
-            "",            # feedbackURI
-            feedback_hash,
+            agent_id, 80, 0, "payment", "x402",
+            _REPUTATION_REGISTRY, "", feedback_hash,
         )
         tx = fn.build_transaction({
             "from": merchant.address,
@@ -374,22 +362,19 @@ def _write_feedback_sync(payer_address: str) -> None:
         tx["gas"] = int(w3.eth.estimate_gas(tx) * 1.1)
         signed = w3.eth.account.sign_transaction(tx, merchant_key)
         tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
-        receipt = w3.eth.wait_for_transaction_receipt(tx_hash, timeout=60)
+        tx_hex = "0x" + tx_hash.hex()
+        logger.info("Feedback tx sent: %s — waiting for receipt", tx_hex)
+        receipt = w3.eth.wait_for_transaction_receipt(tx_hash, timeout=30)
         if receipt.status == 1:
-            logger.info(
-                "Feedback written — agentId=%d tx=0x%s", agent_id, tx_hash.hex()
-            )
+            logger.info("Feedback confirmed — agentId=%d tx=%s", agent_id, tx_hex)
+            return tx_hex, True
         else:
-            logger.warning("giveFeedback reverted — tx=0x%s", tx_hash.hex())
+            logger.warning("giveFeedback reverted — tx=%s", tx_hex)
+            return tx_hex, False
 
     except Exception as exc:
         logger.exception("Error writing reputation feedback: %s", exc)
-
-
-async def _write_feedback_async(payer_address: str) -> None:
-    import asyncio
-    loop = asyncio.get_event_loop()
-    await loop.run_in_executor(None, _write_feedback_sync, payer_address)
+        return None, False
 
 
 # ---------------------------------------------------------------------------
@@ -502,9 +487,10 @@ async def demo_status(agent: str = _AGENT_ADDRESS):
 @app.get("/demo/run")
 async def demo_run(agent: str = _AGENT_ADDRESS):
     async def stream():
-        # Capture score before the run so we can detect the on-chain change.
         score_before = await _fetch_score_for(agent)
         start = time.time()
+
+        feedback_future: asyncio.Future | None = None
 
         for step, label, ms in _DEMO_STEPS[:-1]:
             target = start + ms / 1000
@@ -512,42 +498,53 @@ async def demo_run(agent: str = _AGENT_ADDRESS):
             payload = json.dumps({"step": step, "label": label, "ms": ms})
             yield f"data: {payload}\n\n"
 
-            # After step 7, kick off the giveFeedback tx so the score actually
-            # changes. The demo flow is visual-only and doesn't hit /data, so
-            # we trigger the reputation write directly here.
+            # After step 7: submit giveFeedback and await receipt in executor.
+            # This runs concurrently with the remaining wait time so step 8
+            # fires as soon as the tx confirms (~2s on Base), not after a
+            # 60s poll timeout.
             if step == 7:
                 loop = asyncio.get_event_loop()
-                loop.run_in_executor(None, _write_feedback_sync, agent)
+                feedback_future = loop.run_in_executor(
+                    None, _write_feedback_sync, agent
+                )
 
-        # Poll until score increases above score_before, or 60 s timeout.
-        # We only accept a score HIGHER than score_before as a valid update —
-        # the score API can flap low when the RPC call times out.
-        deadline = time.time() + 60
+        # Await the feedback tx — times out after 20s regardless.
+        tx_hex: str | None = None
+        confirmed = False
+        if feedback_future is not None:
+            try:
+                tx_hex, confirmed = await asyncio.wait_for(feedback_future, timeout=20)
+            except asyncio.TimeoutError:
+                logger.warning("Feedback tx wait timed out after 20s")
+
+        # If tx confirmed, use it as proof; score API may lag so we poll
+        # briefly (up to 20s) for the updated value, then fall back to
+        # score_before if it hasn't propagated yet.
         final_score = score_before
-        while time.time() < deadline:
-            await asyncio.sleep(2)
-            new_score = await _fetch_score_for(agent)
-            logger.info(
-                "score poll: agent=%s before=%s current=%s elapsed=%.1fs",
-                agent[:10], score_before, new_score, time.time() - start,
-            )
-            if new_score is not None and new_score > (score_before or 0):
-                final_score = new_score
-                break
-        else:
-            final_score = score_before
+        if confirmed:
+            deadline = time.time() + 20
+            while time.time() < deadline:
+                await asyncio.sleep(2)
+                new_score = await _fetch_score_for(agent)
+                logger.info("score poll: before=%s current=%s", score_before, new_score)
+                if new_score is not None and new_score > (score_before or 0):
+                    final_score = new_score
+                    break
 
         step, label, ms = _DEMO_STEPS[-1]
         actual_ms = int((time.time() - start) * 1000)
-        payload = json.dumps({
+        event: dict = {
             "step": step,
             "label": label,
             "ms": actual_ms,
             "done": True,
             "score": final_score,
             "tier": _score_tier(final_score),
-        })
-        yield f"data: {payload}\n\n"
+        }
+        if tx_hex:
+            event["tx_hash"] = tx_hex
+            event["basescan"] = f"https://basescan.org/tx/{tx_hex}"
+        yield f"data: {json.dumps(event)}\n\n"
 
     return StreamingResponse(
         stream(),
