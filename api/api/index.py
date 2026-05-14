@@ -85,14 +85,25 @@ def get_agent_identity(agent_address: str):
         result = get_identity(agent_address)
     except Exception:
         raise HTTPException(status_code=503, detail="rpc_unavailable")
+    from chain import IDENTITY_REGISTRY
     return {
         "address": agent_address,
         "registered": result["registered"],
         "token_id": result["token_id"],
         "registry": "ERC-8004",
         "network": "base-mainnet",
-        "registry_address": "0x8004A818BFB912233c491871b3d84c89A494BD9e",
+        "registry_address": IDENTITY_REGISTRY,
     }
+
+
+@app.get("/v1/why/{reason}")
+def why(reason: str, session_id: str = ""):
+    return {"reason": reason, "session_id": session_id}
+
+
+@app.post("/v1/events")
+def post_event(payload: dict = None):
+    return {"ok": True}
 
 # Vercel handler - try mangum, fall back to raw ASGI
 try:
