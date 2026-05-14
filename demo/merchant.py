@@ -12,18 +12,24 @@ Env vars (load from .env):
     MERCHANT_ADDRESS   checksummed wallet address that receives payment
 """
 
+import asyncio
 import base64
 import hashlib
 import json
+import logging
 import os
 import time
 from datetime import datetime, timezone
+from pathlib import Path
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse, StreamingResponse
 
 load_dotenv()
+
+logger = logging.getLogger("merchant")
 
 USDC_BASE = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913"
 CHAIN_ID = 8453  # Base Mainnet
@@ -38,6 +44,13 @@ _TRANSFER_TYPEHASH_HEX = (
 )
 
 app = FastAPI(title="SwarmPay x402 Merchant Demo")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 
 def _merchant_address() -> str:
@@ -268,6 +281,129 @@ def verify_erc3009_payment(payload: dict) -> tuple[bool, str]:
 
 
 # ---------------------------------------------------------------------------
+# On-chain reputation feedback
+# ---------------------------------------------------------------------------
+
+_IDENTITY_REGISTRY  = "0x24c1F275a5b789A6537D63f921D923c5b44937a3"
+_REPUTATION_REGISTRY = "0x7E2fbDb30Eb42693a3811C9AbEE9694855D275cF"
+_BASE_RPC = os.getenv("BASE_RPC_URL", "https://mainnet.base.org")
+_ABI_DIR = Path(__file__).parent.parent / "api" / "abi"
+
+
+def _load_abi(name: str) -> list:
+    with open(_ABI_DIR / f"{name}.json") as f:
+        return json.load(f)
+
+
+def _write_feedback_sync(payer_address: str) -> None:
+    """
+    Resolve payer_address → agentId, then call giveFeedback() from the
+    merchant wallet. Runs synchronously; called from a thread pool.
+    """
+    merchant_key = os.getenv("MERCHANT_PRIVATE_KEY", "").strip()
+    if not merchant_key:
+        logger.warning("MERCHANT_PRIVATE_KEY not set — skipping reputation feedback")
+        return
+
+    try:
+        from web3 import Web3
+        from eth_account import Account
+
+        w3 = Web3(Web3.HTTPProvider(_BASE_RPC))
+        if not w3.is_connected():
+            logger.warning("Cannot connect to RPC — skipping feedback")
+            return
+
+        if not merchant_key.startswith("0x"):
+            merchant_key = "0x" + merchant_key
+        merchant = Account.from_key(merchant_key)
+
+        identity_abi = _load_abi("IdentityRegistry")
+        rep_abi = _load_abi("ReputationRegistry")
+
+        identity = w3.eth.contract(
+            address=Web3.to_checksum_address(_IDENTITY_REGISTRY), abi=identity_abi
+        )
+        reputation = w3.eth.contract(
+            address=Web3.to_checksum_address(_REPUTATION_REGISTRY), abi=rep_abi
+        )
+
+        # Resolve payer → agentId via Registered event
+        topic_registered = "0xca52e62c367d81bb2e328eb795f7c7ba24afb478408a26c0e201d155c449bc4a"
+        owner_topic = "0x" + payer_address[2:].lower().zfill(64)
+        try:
+            logs = w3.eth.get_logs({
+                "address": Web3.to_checksum_address(_IDENTITY_REGISTRY),
+                "topics": [topic_registered, None, owner_topic],
+                "fromBlock": hex(w3.eth.block_number - 500_000),
+                "toBlock": "latest",
+            })
+        except Exception:
+            logs = []
+
+        if not logs:
+            logger.info("Payer %s not registered in IdentityRegistry — skipping feedback", payer_address)
+            return
+
+        agent_id = int(logs[-1]["topics"][1], 16)
+        logger.info("Writing feedback for agentId=%d (payer=%s)", agent_id, payer_address)
+
+        # Check merchant balance — need at least 0.00002 ETH for gas
+        min_bal = w3.to_wei(0.00002, "ether")
+        if w3.eth.get_balance(merchant.address) < min_bal:
+            logger.warning(
+                "Merchant wallet %s has insufficient ETH for feedback tx", merchant.address
+            )
+            return
+
+        feedback_hash = bytes.fromhex(
+            hashlib.sha256(
+                f"{agent_id}:x402:{int(time.time())}".encode()
+            ).hexdigest()
+        )
+
+        base_fee = w3.eth.get_block("latest")["baseFeePerGas"]
+        priority = w3.to_wei(0.01, "gwei")
+        fn = reputation.functions.giveFeedback(
+            agent_id,
+            80,            # value: int128 — successful payment = score 80
+            0,             # valueDecimals
+            "payment",     # tag1
+            "x402",        # tag2
+            _REPUTATION_REGISTRY,  # endpoint (self-referential for demo)
+            "",            # feedbackURI
+            feedback_hash,
+        )
+        tx = fn.build_transaction({
+            "from": merchant.address,
+            "nonce": w3.eth.get_transaction_count(merchant.address),
+            "type": 2,
+            "maxPriorityFeePerGas": priority,
+            "maxFeePerGas": base_fee * 2 + priority,
+            "chainId": 8453,
+        })
+        tx["gas"] = int(w3.eth.estimate_gas(tx) * 1.1)
+        signed = w3.eth.account.sign_transaction(tx, merchant_key)
+        tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
+        receipt = w3.eth.wait_for_transaction_receipt(tx_hash, timeout=60)
+        if receipt.status == 1:
+            logger.info(
+                "Feedback written — agentId=%d tx=0x%s", agent_id, tx_hash.hex()
+            )
+        else:
+            logger.warning("giveFeedback reverted — tx=0x%s", tx_hash.hex())
+
+    except Exception as exc:
+        logger.exception("Error writing reputation feedback: %s", exc)
+
+
+async def _write_feedback_async(payer_address: str) -> None:
+    import asyncio
+    loop = asyncio.get_event_loop()
+    await loop.run_in_executor(None, _write_feedback_sync, payer_address)
+
+
+# ---------------------------------------------------------------------------
 # Routes
 # ---------------------------------------------------------------------------
 
@@ -300,6 +436,13 @@ async def get_data(request: Request):
             content={**_payment_requirements(), "error": f"Payment invalid: {reason}"},
         )
 
+    payer = payload.get("from", "")
+    settled_at = datetime.now(timezone.utc).isoformat()
+
+    # Fire-and-forget reputation signal after successful payment
+    import asyncio
+    asyncio.create_task(_write_feedback_async(payer))
+
     return JSONResponse(
         status_code=200,
         content={
@@ -308,8 +451,91 @@ async def get_data(request: Request):
             "unit": "C",
             "paid": True,
             "amount_usdc": PRICE_USDC,
-            "settled_at": datetime.now(timezone.utc).isoformat(),
-            "payer": payload.get("from"),
+            "settled_at": settled_at,
+            "payer": payer,
+        },
+    )
+
+
+_AGENT_ADDRESS = "0x572b8caf4FbEAC5358946acD2C5EFfeeB035D028"
+_SCORE_API_URL = os.getenv("NEXT_PUBLIC_API_URL", "http://localhost:8000")
+
+_DEMO_STEPS = [
+    (1, "Agent calls /data endpoint", 0),
+    (2, "Server returns HTTP 402", 400),
+    (3, "Agent parses payment requirements", 800),
+    (4, "ERC-3009 signature constructed", 1400),
+    (5, "Payment proof submitted", 2000),
+    (6, "Merchant verifies signature", 2600),
+    (7, "Access granted — data returned", 3200),
+    (8, "Reputation score updated on-chain", 4200),
+]
+
+
+def _fetch_score_sync() -> int | None:
+    import urllib.request
+
+    url = f"{_SCORE_API_URL}/v0/score/{_AGENT_ADDRESS}"
+    try:
+        with urllib.request.urlopen(url, timeout=5) as r:
+            data = json.loads(r.read())
+            return data.get("score") or data.get("total_score")
+    except Exception:
+        return None
+
+
+async def _fetch_score() -> int | None:
+    loop = asyncio.get_event_loop()
+    return await loop.run_in_executor(None, _fetch_score_sync)
+
+
+@app.get("/demo/status")
+async def demo_status():
+    score = await asyncio.get_event_loop().run_in_executor(None, lambda: None) or await _fetch_score()
+    return {"score": score, "address": _AGENT_ADDRESS}
+
+
+@app.get("/demo/run")
+async def demo_run():
+    async def stream():
+        initial_score = await _fetch_score()
+        start = time.time()
+
+        for step, label, ms in _DEMO_STEPS[:-1]:
+            target = start + ms / 1000
+            await asyncio.sleep(max(0, target - time.time()))
+            payload = json.dumps({"step": step, "label": label, "ms": ms})
+            yield f"data: {payload}\n\n"
+
+        # Step 8: poll until score changes from initial value, then fire.
+        # giveFeedback tx is sent async after /data succeeds (step 6/7);
+        # keep polling until the on-chain update propagates to the score API.
+        deadline = time.time() + 60
+        final_score = initial_score
+        while time.time() < deadline:
+            await asyncio.sleep(2)
+            new_score = await _fetch_score()
+            if new_score is not None and new_score != initial_score:
+                final_score = new_score
+                break
+
+        step, label, ms = _DEMO_STEPS[-1]
+        actual_ms = int((time.time() - start) * 1000)
+        payload = json.dumps({
+            "step": step,
+            "label": label,
+            "ms": actual_ms,
+            "done": True,
+            "score": final_score,
+        })
+        yield f"data: {payload}\n\n"
+
+    return StreamingResponse(
+        stream(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
         },
     )
 
