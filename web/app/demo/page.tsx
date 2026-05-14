@@ -126,12 +126,10 @@ export default function DemoDashboard() {
         if (data.score != null) {
           setScore(data.score);
           setScoreAtPayment(data.score);
-          setTier(data.tier ?? tier);
+          if (data.tier) setTier(data.tier);
         }
         es.close();
         setRunning(false);
-        // Refresh score from API after a short delay to catch any propagation lag
-        setTimeout(fetchScore, 2000);
       }
     };
 
@@ -147,9 +145,18 @@ export default function DemoDashboard() {
 
   return (
     <div
-      className="flex h-screen w-screen overflow-hidden font-mono"
+      className="relative flex h-screen w-screen overflow-hidden font-mono"
       style={{ background: "#080B10", color: "#E6EDF3" }}
     >
+      <a
+        href="/"
+        className="absolute top-4 left-6 z-10 text-xs font-mono transition-colors"
+        style={{ color: "#8B949E" }}
+        onMouseEnter={(e) => (e.currentTarget.style.color = "#E6EDF3")}
+        onMouseLeave={(e) => (e.currentTarget.style.color = "#8B949E")}
+      >
+        ← Home
+      </a>
       {/* ── PANEL 1: AI AGENT ── */}
       <div
         className="flex flex-col w-1/3 border-r p-10 gap-10"
