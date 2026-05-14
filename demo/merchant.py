@@ -27,7 +27,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, StreamingResponse
 
-load_dotenv()
+load_dotenv(Path(__file__).parent / ".env")
 
 logger = logging.getLogger("merchant")
 
@@ -318,34 +318,23 @@ def _write_feedback_sync(payer_address: str) -> None:
             merchant_key = "0x" + merchant_key
         merchant = Account.from_key(merchant_key)
 
-        identity_abi = _load_abi("IdentityRegistry")
         rep_abi = _load_abi("ReputationRegistry")
 
-        identity = w3.eth.contract(
-            address=Web3.to_checksum_address(_IDENTITY_REGISTRY), abi=identity_abi
-        )
         reputation = w3.eth.contract(
             address=Web3.to_checksum_address(_REPUTATION_REGISTRY), abi=rep_abi
         )
 
-        # Resolve payer → agentId via Registered event
-        topic_registered = "0xca52e62c367d81bb2e328eb795f7c7ba24afb478408a26c0e201d155c449bc4a"
-        owner_topic = "0x" + payer_address[2:].lower().zfill(64)
-        try:
-            logs = w3.eth.get_logs({
-                "address": Web3.to_checksum_address(_IDENTITY_REGISTRY),
-                "topics": [topic_registered, None, owner_topic],
-                "fromBlock": hex(w3.eth.block_number - 500_000),
-                "toBlock": "latest",
-            })
-        except Exception:
-            logs = []
-
-        if not logs:
+        # Resolve payer → agentId via chain.get_identity (uses ownerOf scan,
+        # avoids eth_getLogs which 413s on public Base RPC for large ranges).
+        import sys
+        sys.path.insert(0, str(Path(__file__).parent.parent / "api"))
+        from chain import get_identity as _get_identity
+        identity_result = _get_identity(payer_address)
+        if not identity_result.get("registered") or identity_result.get("token_id") is None:
             logger.info("Payer %s not registered in IdentityRegistry — skipping feedback", payer_address)
             return
 
-        agent_id = int(logs[-1]["topics"][1], 16)
+        agent_id = identity_result["token_id"]
         logger.info("Writing feedback for agentId=%d (payer=%s)", agent_id, payer_address)
 
         # Check merchant balance — need at least 0.00002 ETH for gas
@@ -525,7 +514,10 @@ async def demo_run():
                 loop = asyncio.get_event_loop()
                 loop.run_in_executor(None, _write_feedback_sync, _AGENT_ADDRESS)
 
-        # Poll until score changes from score_before, or 60 s timeout.
+        # Poll until score increases above score_before, or 60 s timeout.
+        # We only accept a score HIGHER than score_before as a valid update —
+        # the score API can flap low when the RPC call times out, which would
+        # otherwise be misread as a real change.
         deadline = time.time() + 60
         final_score = score_before
         while time.time() < deadline:
@@ -535,12 +527,11 @@ async def demo_run():
                 "score poll: before=%s current=%s elapsed=%.1fs",
                 score_before, new_score, time.time() - start,
             )
-            if new_score is not None and new_score != score_before:
+            if new_score is not None and new_score > (score_before or 0):
                 final_score = new_score
                 break
         else:
-            # Timeout — use whatever we got last
-            final_score = await _fetch_score() or score_before
+            final_score = score_before
 
         step, label, ms = _DEMO_STEPS[-1]
         actual_ms = int((time.time() - start) * 1000)
