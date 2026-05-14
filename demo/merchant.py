@@ -472,6 +472,16 @@ _DEMO_STEPS = [
 ]
 
 
+def _score_tier(score: int | None) -> str:
+    if score is None:
+        return "A"
+    if score >= 700:
+        return "AAA"
+    if score >= 500:
+        return "AA"
+    return "A"
+
+
 def _fetch_score_sync() -> int | None:
     import urllib.request
 
@@ -491,14 +501,15 @@ async def _fetch_score() -> int | None:
 
 @app.get("/demo/status")
 async def demo_status():
-    score = await asyncio.get_event_loop().run_in_executor(None, lambda: None) or await _fetch_score()
-    return {"score": score, "address": _AGENT_ADDRESS}
+    score = await _fetch_score()
+    return {"score": score, "tier": _score_tier(score), "address": _AGENT_ADDRESS}
 
 
 @app.get("/demo/run")
 async def demo_run():
     async def stream():
-        initial_score = await _fetch_score()
+        # Capture score before the run so we can detect the on-chain change.
+        score_before = await _fetch_score()
         start = time.time()
 
         for step, label, ms in _DEMO_STEPS[:-1]:
@@ -507,17 +518,29 @@ async def demo_run():
             payload = json.dumps({"step": step, "label": label, "ms": ms})
             yield f"data: {payload}\n\n"
 
-        # Step 8: poll until score changes from initial value, then fire.
-        # giveFeedback tx is sent async after /data succeeds (step 6/7);
-        # keep polling until the on-chain update propagates to the score API.
+            # After step 7, kick off the giveFeedback tx so the score actually
+            # changes. The demo flow is visual-only and doesn't hit /data, so
+            # we trigger the reputation write directly here.
+            if step == 7:
+                loop = asyncio.get_event_loop()
+                loop.run_in_executor(None, _write_feedback_sync, _AGENT_ADDRESS)
+
+        # Poll until score changes from score_before, or 60 s timeout.
         deadline = time.time() + 60
-        final_score = initial_score
+        final_score = score_before
         while time.time() < deadline:
             await asyncio.sleep(2)
             new_score = await _fetch_score()
-            if new_score is not None and new_score != initial_score:
+            logger.info(
+                "score poll: before=%s current=%s elapsed=%.1fs",
+                score_before, new_score, time.time() - start,
+            )
+            if new_score is not None and new_score != score_before:
                 final_score = new_score
                 break
+        else:
+            # Timeout — use whatever we got last
+            final_score = await _fetch_score() or score_before
 
         step, label, ms = _DEMO_STEPS[-1]
         actual_ms = int((time.time() - start) * 1000)
@@ -527,6 +550,7 @@ async def demo_run():
             "ms": actual_ms,
             "done": True,
             "score": final_score,
+            "tier": _score_tier(final_score),
         })
         yield f"data: {payload}\n\n"
 
