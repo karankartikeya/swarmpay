@@ -125,7 +125,7 @@ export default function DemoDashboard() {
         return;
       }
 
-      setCompletedSteps((prev) => new Set([...prev, data.step]));
+      setCompletedSteps((prev) => new Set(Array.from(prev).concat(data.step)));
       setStepMs((prev) => ({ ...prev, [data.step]: data.ms }));
 
       if (data.done) {
