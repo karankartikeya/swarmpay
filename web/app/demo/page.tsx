@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 
 const AGENT_ADDRESS = "0x572b8caf4FbEAC5358946acD2C5EFfeeB035D028";
 const BAD_AGENT_ADDRESS = "0x0d5CFf2655FbDA89dF5f767335099eeFEEe55A2D";
@@ -43,7 +44,9 @@ function Label({ children, red }: { children: React.ReactNode; red?: boolean }) 
   );
 }
 
-export default function DemoDashboard() {
+function DemoDashboard() {
+  const searchParams = useSearchParams();
+  const isPresentationMode = searchParams.get("mode") === "presentation";
   const [score, setScore]     = useState<number | null>(null);
   const [tier, setTier]       = useState<string | null>(null);
   const [badScore, setBadScore] = useState<number | null>(null);
@@ -57,6 +60,8 @@ export default function DemoDashboard() {
   const [usdcReceived, setUsdcReceived] = useState(0);
   const [scoreAtPayment, setScoreAtPayment] = useState<number | null>(null);
   const [running, setRunning] = useState(false);
+
+  const [showBasescan, setShowBasescan] = useState(false);
 
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const esRef    = useRef<EventSource | null>(null);
@@ -88,14 +93,55 @@ export default function DemoDashboard() {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
   }
 
-  function runDemo() {
-    if (running) return;
+  async function runDemoPresentation() {
     setRunning(true);
     setStatus("PAYING");
     setCompletedSteps(new Set());
     setRejectedStep(null);
     setStepMs({});
     setScoreAtPayment(null);
+    setShowBasescan(false);
+    startTimer();
+
+    for (let step = 1; step <= STEPS.length; step++) {
+      await new Promise<void>((resolve) => setTimeout(resolve, 400));
+      const ms = step * 400;
+      setCompletedSteps((prev) => new Set(Array.from(prev).concat(step)));
+      setStepMs((prev) => ({ ...prev, [step]: ms }));
+    }
+
+    stopTimer();
+    setElapsed(STEPS.length * 400);
+    setStatus("DONE");
+    setUsdcReceived((u) => parseFloat((u + 0.001).toFixed(3)));
+    setShowBasescan(true);
+
+    try {
+      const res = await fetch(`${API_URL}/v0/score/${AGENT_ADDRESS}`);
+      if (res.ok) {
+        const d = await res.json();
+        const liveScore = d.score ?? null;
+        const liveTier = d.tier ?? null;
+        setScore(liveScore);
+        setTier(liveTier);
+        setScoreAtPayment(liveScore);
+      }
+    } catch {}
+
+    setRunning(false);
+  }
+
+  function runDemo() {
+    if (running) return;
+    if (isPresentationMode) { runDemoPresentation(); return; }
+
+    setRunning(true);
+    setStatus("PAYING");
+    setCompletedSteps(new Set());
+    setRejectedStep(null);
+    setStepMs({});
+    setScoreAtPayment(null);
+    setShowBasescan(false);
     startTimer();
 
     const url = selectedAgent === "bad"
@@ -112,7 +158,6 @@ export default function DemoDashboard() {
         score?: number; tier?: string;
       };
 
-      // For rejected step: mark it separately, stop timer, set REJECTED status
       if (data.rejected) {
         setRejectedStep(data.step);
         setStepMs((prev) => ({ ...prev, [data.step]: data.ms }));
@@ -133,6 +178,7 @@ export default function DemoDashboard() {
         setElapsed(Date.now() - startRef.current);
         setStatus("DONE");
         setUsdcReceived((u) => parseFloat((u + 0.001).toFixed(3)));
+        setShowBasescan(true);
         if (data.score != null) {
           setScore(data.score);
           setScoreAtPayment(data.score);
@@ -153,7 +199,7 @@ export default function DemoDashboard() {
   const badge        = tierBadge(displayTier);
   const accentColor  = isBad ? "#E74C3C" : "#2F80ED";
 
-  return (
+  return (<>
     <div className="relative flex h-screen w-screen overflow-hidden font-mono"
       style={{ background: "#080B10", color: "#E6EDF3" }}>
 
@@ -283,6 +329,20 @@ export default function DemoDashboard() {
           })}
         </div>
 
+        {showBasescan && (
+          <a
+            href="https://basescan.org/address/0xb194262C09f89F726172d5E29a4bb18f11403a52"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-xs font-mono transition-colors"
+            style={{ color: "#10B981" }}
+            onMouseEnter={(e) => (e.currentTarget.style.color = "#6EE7B7")}
+            onMouseLeave={(e) => (e.currentTarget.style.color = "#10B981")}
+          >
+            ↗ Verify on Basescan
+          </a>
+        )}
+
         {/* Agent selector */}
         <div>
           <Label>Run As Agent</Label>
@@ -388,5 +448,13 @@ export default function DemoDashboard() {
         </div>
       </div>
     </div>
+  </>);
+}
+
+export default function DemoDashboardPage() {
+  return (
+    <Suspense>
+      <DemoDashboard />
+    </Suspense>
   );
 }
