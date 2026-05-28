@@ -26,7 +26,7 @@ const STEPS: { label: string; swarmpay: boolean }[] = [
 // per-step delay in presentation mode (ms)
 const STEP_DELAYS = [400, 400, 500, 500, 500, 500, 400, 400, 400, 600, 600];
 
-type Status = "IDLE" | "PAYING" | "DONE" | "REJECTED";
+type Status = "IDLE" | "PAYING" | "DONE" | "REJECTED" | "BLOCKED";
 type AgentKey = "good" | "bad";
 
 function trunc(addr: string) {
@@ -143,6 +143,7 @@ function DemoDashboard() {
   const [completedSteps, setCompletedSteps] = useState<Set<number>>(new Set());
   const [activeStep, setActiveStep]         = useState<number | null>(null);
   const [rejectedStep, setRejectedStep]     = useState<number | null>(null);
+  const [failedStep, setFailedStep]         = useState<number | null>(null);
   const [stepMs, setStepMs]     = useState<Record<number, number>>({});
   const [elapsed, setElapsed]   = useState(0);
   const [usdcReceived, setUsdcReceived]     = useState(0);
@@ -187,17 +188,45 @@ function DemoDashboard() {
     setCompletedSteps(new Set());
     setActiveStep(null);
     setRejectedStep(null);
+    setFailedStep(null);
     setStepMs({});
     setScoreAtPayment(null);
     setShowBasescan(false);
   }
 
   async function runDemoPresentation() {
+    const isBadFlow = selectedAgent === "bad";
     setRunning(true);
     setStatus("PAYING");
     resetState();
     startTimer();
 
+    // Bad agent: run steps 1–3, then fail at step 4
+    if (isBadFlow) {
+      let cumulative = 0;
+      for (let i = 0; i < 4; i++) {
+        const step = i + 1;
+        setActiveStep(step);
+        await new Promise<void>((r) => setTimeout(r, STEP_DELAYS[i]));
+        cumulative += STEP_DELAYS[i];
+        if (step === 4) {
+          // Step 4 fails
+          setFailedStep(4);
+          setStepMs((prev) => ({ ...prev, [4]: cumulative }));
+        } else {
+          setCompletedSteps((prev) => new Set(Array.from(prev).concat(step)));
+          setStepMs((prev) => ({ ...prev, [step]: cumulative }));
+        }
+      }
+      setActiveStep(null);
+      stopTimer();
+      setElapsed(cumulative);
+      setStatus("BLOCKED");
+      setRunning(false);
+      return;
+    }
+
+    // Good agent: all 11 steps
     let cumulative = 0;
     for (let i = 0; i < STEPS.length; i++) {
       const step = i + 1;
@@ -372,9 +401,10 @@ function DemoDashboard() {
           <div>
             <Label>Status</Label>
             <span className={`inline-flex items-center gap-2 text-xs px-3 py-1.5 rounded border uppercase tracking-widest ${
-              status === "PAYING"     ? "border-blue-500 text-blue-400"
-              : status === "DONE"    ? "border-green-500 text-green-400"
-              : status === "REJECTED"? "border-red-500 text-red-400"
+              status === "PAYING"      ? "border-blue-500 text-blue-400"
+              : status === "DONE"     ? "border-green-500 text-green-400"
+              : status === "REJECTED" ? "border-red-500 text-red-400"
+              : status === "BLOCKED"  ? "border-red-500 text-red-400"
               : "border-gray-600 text-gray-400"
             }`}>
               {status === "PAYING" && <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />}
@@ -418,38 +448,44 @@ function DemoDashboard() {
           {/* Steps */}
           <div className="flex flex-col flex-1 overflow-auto" style={{ gap: 8 }}>
             {STEPS.map(({ label, swarmpay }, i) => {
-              const step = i + 1;
+              const step        = i + 1;
               const done        = completedSteps.has(step);
               const isActive    = activeStep === step;
               const isRejected  = rejectedStep === step;
+              const isFailed    = failedStep === step;
               const afterRej    = rejectedStep != null && step > rejectedStep;
+              const afterFail   = failedStep != null && step > failedStep;
+              const dimmed      = afterRej || afterFail;
 
-              // slide-in stagger on mount
               const slideStyle = mounted
                 ? { animation: `slideIn 0.35s ease both`, animationDelay: `${i * 50}ms` }
                 : { opacity: 0 };
 
-              // row background
               let rowBg = "transparent";
-              if (isActive) rowBg = "rgba(59,130,246,0.06)";
+              if (isFailed) rowBg = "rgba(239,68,68,0.08)";
+              else if (isActive) rowBg = "rgba(59,130,246,0.06)";
               else if (done && swarmpay) rowBg = "rgba(16,185,129,0.06)";
               else if (isRejected) rowBg = "rgba(239,68,68,0.06)";
 
-              // left border accent
               let borderLeft = "2px solid #1C2333";
-              if (isActive) borderLeft = "2px solid #3B82F6";
+              if (isFailed) borderLeft = "2px solid #EF4444";
+              else if (isActive) borderLeft = "2px solid #3B82F6";
               else if (done && swarmpay) borderLeft = "2px solid #10B981";
               else if (done && !swarmpay) borderLeft = "2px solid #6B7280";
               else if (isRejected) borderLeft = "2px solid #EF4444";
 
-              // text color
               let textColor = "#8B949E";
-              if (isActive) textColor = "#E6EDF3";
+              if (isFailed) textColor = "#F87171";
+              else if (isActive) textColor = "#E6EDF3";
               else if (done && swarmpay) textColor = "#6EE7B7";
               else if (done && !swarmpay) textColor = "#E6EDF3";
               else if (isRejected) textColor = "#F87171";
 
-              const displayLabel = isRejected ? "Merchant rejected — low trust score" : label;
+              const displayLabel = isFailed
+                ? "Score check: 0 < 400 threshold ✗"
+                : isRejected
+                ? "Merchant rejected — low trust score"
+                : label;
 
               return (
                 <div key={step}
@@ -463,13 +499,13 @@ function DemoDashboard() {
                     borderRadius: 6,
                     background: rowBg,
                     borderLeft,
-                    opacity: afterRej ? 0.2 : 1,
+                    opacity: dimmed ? 0.2 : 1,
                     transition: "background 0.3s, border-left 0.3s, opacity 0.3s",
                   }}>
 
                   {/* Icon */}
                   <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center">
-                    {isRejected ? <Cross />
+                    {(isRejected || isFailed) ? <Cross />
                       : isActive ? <Spinner />
                       : done ? <Check color={swarmpay ? "#10B981" : "#E6EDF3"} />
                       : <span className="text-xs" style={{ color: "#4B5563" }}>{step}</span>}
@@ -483,15 +519,15 @@ function DemoDashboard() {
 
                   {/* Right side: ms + swarmpay badge */}
                   <div className="flex items-center gap-2 flex-shrink-0">
-                    {done && swarmpay && (
+                    {(done || isFailed) && swarmpay && (
                       <span className="text-xs font-mono uppercase tracking-widest px-1.5 py-0.5 rounded"
-                        style={{ background: "#065F46", color: "#6EE7B7", fontSize: 9 }}>
+                        style={{ background: isFailed ? "#3B0A0A" : "#065F46", color: isFailed ? "#F87171" : "#6EE7B7", fontSize: 9 }}>
                         SwarmPay
                       </span>
                     )}
                     <span className="text-xs" style={{
-                      color: isRejected ? "#F87171" : "#4B5563",
-                      opacity: (done || isRejected) && stepMs[step] != null ? 1 : 0,
+                      color: (isRejected || isFailed) ? "#F87171" : "#4B5563",
+                      opacity: (done || isRejected || isFailed) && stepMs[step] != null ? 1 : 0,
                       minWidth: 48, textAlign: "right",
                     }}>
                       {stepMs[step] != null ? `${stepMs[step]}ms` : ""}
@@ -501,6 +537,14 @@ function DemoDashboard() {
               );
             })}
           </div>
+
+          {/* Blocked banner */}
+          {status === "BLOCKED" && (
+            <div className="text-xs font-mono px-3 py-2 rounded"
+              style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#F87171" }}>
+              Payment rejected — agent below trust threshold
+            </div>
+          )}
 
           {/* Basescan */}
           {showBasescan && (

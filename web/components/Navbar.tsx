@@ -43,7 +43,7 @@ export default function Navbar() {
               Docs
             </a>
             <a
-              href="/demo"
+              href="/demo?mode=presentation"
               className="text-sp-muted hover:text-sp-white text-sm transition-colors"
             >
               Demo
@@ -105,7 +105,7 @@ export default function Navbar() {
               Docs
             </a>
             <a
-              href="/demo"
+              href="/demo?mode=presentation"
               className="text-sp-muted hover:text-sp-white text-sm transition-colors px-2 py-1"
               onClick={() => setMenuOpen(false)}
             >
