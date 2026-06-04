@@ -2,10 +2,13 @@ import sys
 import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
+import re
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from chain import get_agent_feedback, get_identity, get_payment_history, is_valid_address
-from datetime import datetime
+from basescan import get_transactions, get_erc20_transfers
+from behavioral_score import compute_behavioral_score
+from datetime import datetime, timezone
 
 app = FastAPI(title="SwarmPay API", version="0.1.0")
 
@@ -98,6 +101,76 @@ def get_agent_identity(agent_address: str):
         "registry": "ERC-8004",
         "network": "base-mainnet",
         "registry_address": IDENTITY_REGISTRY,
+    }
+
+
+_ETH_ADDRESS_RE = re.compile(r"^0x[0-9a-fA-F]{40}$")
+
+USDC_BASE = "0x833589fcd6edb6e08f4c7c32d4f71b54bda02913"
+
+
+def _format_tx(tx: dict, address: str) -> dict:
+    addr = address.lower()
+    is_failed = tx.get("isError") == "1"
+    value_wei = int(tx.get("value", 0))
+    value_eth = f"{value_wei / 1e18:.6f}".rstrip("0").rstrip(".")
+
+    from_addr = tx.get("from", "").lower()
+    to_addr = tx.get("to", "").lower()
+    counterparty = to_addr if from_addr == addr else from_addr
+
+    input_data = tx.get("input", "0x")
+    if is_failed:
+        tx_type = "failed"
+    elif input_data and input_data != "0x":
+        tx_type = "contract_call"
+    elif value_wei > 0:
+        tx_type = "payment"
+    else:
+        tx_type = "transfer"
+
+    ts = int(tx.get("timeStamp", 0))
+    iso_ts = datetime.fromtimestamp(ts, tz=timezone.utc).isoformat() if ts else None
+
+    return {
+        "hash": tx.get("hash"),
+        "type": tx_type,
+        "value_eth": value_eth if value_eth else "0",
+        "counterparty": counterparty,
+        "timestamp": iso_ts,
+        "status": "failed" if is_failed else "success",
+    }
+
+
+@app.get("/v0/explore/{address}")
+def explore_address(address: str):
+    if not _ETH_ADDRESS_RE.match(address):
+        raise HTTPException(status_code=400, detail="Invalid Ethereum address")
+
+    txs = get_transactions(address)
+    erc20_txs = get_erc20_transfers(address)
+
+    if not txs:
+        return {
+            "address": address,
+            "score": 0,
+            "tier": "Unrated",
+            "message": "No transaction history found on Base mainnet",
+        }
+
+    result = compute_behavioral_score(txs, erc20_txs, address)
+
+    recent = [_format_tx(t, address) for t in txs[:10]]
+
+    return {
+        "address": address,
+        "score": result["score"],
+        "tier": result["tier"],
+        "components": result["components"],
+        "signals": result["signals"],
+        "recent_transactions": recent,
+        "powered_by": "SwarmPay Behavioral Intelligence",
+        "network": "base-mainnet",
     }
 
 
