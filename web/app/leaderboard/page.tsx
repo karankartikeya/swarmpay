@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -84,8 +86,9 @@ export default function LeaderboardPage() {
   useEffect(() => { fetchLeaderboard(); }, [fetchLeaderboard]);
 
   return (
-    <main className="min-h-screen bg-sp-bg text-sp-white pt-24 pb-20 px-4">
-      <div className="max-w-4xl mx-auto">
+    <main className="min-h-screen bg-sp-bg text-sp-white pb-20 px-4">
+      <Navbar />
+      <div className="max-w-4xl mx-auto pt-24">
 
         {/* Header */}
         <div className="mb-10 text-center animate-fade-slide-up">
@@ -198,6 +201,7 @@ export default function LeaderboardPage() {
           <span className="text-sp-primary">SwarmPay Behavioral Intelligence</span> · Base Mainnet
         </p>
       </div>
+      <Footer />
     </main>
   );
 }

@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import WaitlistForm from "@/components/WaitlistForm";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -103,8 +105,9 @@ function ExplorerInner() {
   const noHistory = result && (result.score === 0 || result.message);
 
   return (
-    <main className="min-h-screen bg-sp-bg text-sp-white pt-24 pb-20 px-4">
-      <div className="max-w-3xl mx-auto">
+    <main className="min-h-screen bg-sp-bg text-sp-white pb-20 px-4">
+      <Navbar />
+      <div className="max-w-3xl mx-auto pt-24">
 
         {/* Heading */}
         <div className="mb-10 text-center animate-fade-slide-up">
@@ -384,6 +387,7 @@ function ExplorerInner() {
           </div>
         )}
       </div>
+      <Footer />
     </main>
   );
 }
