@@ -1,76 +1,77 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
+
+const NAV_LINKS = [
+  { label: "Explorer", href: "/explorer" },
+  { label: "Leaderboard", href: "/leaderboard" },
+  { label: "Demo", href: "/demo?mode=presentation" },
+  { label: "Docs", href: "#" },
+];
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const pathname = usePathname();
 
   useEffect(() => {
-    const handleScroll = () => {
-      setScrolled(window.scrollY > 80);
-    };
+    const handleScroll = () => setScrolled(window.scrollY > 60);
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
+  // Close mobile menu on route change
+  useEffect(() => { setMenuOpen(false); }, [pathname]);
+
+  const isActive = (href: string) => pathname === href || (href !== "/" && pathname.startsWith(href.split("?")[0]));
+
   return (
     <nav
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
-        scrolled
-          ? "backdrop-blur-md bg-sp-bg/80 border-b border-sp-border"
+        scrolled || menuOpen
+          ? "backdrop-blur-xl bg-sp-bg/85 border-b border-sp-border/60"
           : "bg-transparent"
       }`}
     >
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6">
+        <div className="flex items-center justify-between h-15 py-3.5">
+
           {/* Logo */}
-          <div className="flex items-center">
-            <span className="font-display font-bold text-sp-white text-lg">
+          <a href="/" className="flex items-center gap-2 group">
+            <span className="font-display font-bold text-sp-white text-base group-hover:text-sp-primary transition-colors">
               SwarmPay
             </span>
-            <span className="ml-2 bg-sp-primary/20 text-sp-primary text-xs px-2 py-0.5 rounded-full font-mono">
+            <span className="bg-sp-primary/15 text-sp-primary text-[10px] px-2 py-0.5 rounded-full font-mono tracking-wide border border-sp-primary/20">
               BETA
             </span>
-          </div>
+          </a>
 
           {/* Desktop nav */}
-          <div className="hidden md:flex items-center gap-6">
+          <div className="hidden md:flex items-center gap-1">
+            {NAV_LINKS.map((link) => (
+              <a
+                key={link.label}
+                href={link.href}
+                className={`relative px-3.5 py-2 text-sm rounded-md transition-all duration-150 ${
+                  isActive(link.href)
+                    ? "text-sp-white bg-sp-primary/10"
+                    : "text-sp-muted hover:text-sp-white hover:bg-sp-surface/60"
+                }`}
+              >
+                {link.label}
+                {isActive(link.href) && (
+                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-sp-primary" />
+                )}
+              </a>
+            ))}
+          </div>
+
+          {/* Desktop CTA */}
+          <div className="hidden md:flex items-center gap-3">
             <a
-              href="#"
-              className="text-sp-muted hover:text-sp-white text-sm transition-colors"
-            >
-              Docs
-            </a>
-            <a
-              href="/demo?mode=presentation"
-              className="text-sp-muted hover:text-sp-white text-sm transition-colors"
-            >
-              Demo
-            </a>
-            <a
-              href="/explorer"
-              className="text-sp-muted hover:text-sp-white text-sm transition-colors"
-            >
-              Explorer
-            </a>
-            <a
-              href="/leaderboard"
-              className="text-sp-muted hover:text-sp-white text-sm transition-colors"
-            >
-              Leaderboard
-            </a>
-            {/* <
-              href="https://github.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sp-muted hover:text-sp-white text-sm transition-colors"
-            >
-              GitHub
-            </a> */}
-            <a
-              href="#waitlist"
-              className="bg-sp-primary hover:bg-blue-500 text-white text-sm px-4 py-2 rounded-md transition-colors btn-shimmer"
+              href="/#waitlist"
+              className="bg-sp-primary hover:bg-blue-500 text-white text-sm px-4 py-2 rounded-lg font-medium transition-all duration-200 btn-shimmer shadow-sm shadow-sp-primary/20"
             >
               Request Access
             </a>
@@ -78,28 +79,21 @@ export default function Navbar() {
 
           {/* Mobile hamburger */}
           <button
-            className="md:hidden text-sp-muted hover:text-sp-white p-2"
+            className="md:hidden flex items-center justify-center w-9 h-9 rounded-md text-sp-muted hover:text-sp-white hover:bg-sp-surface/60 transition-colors"
             onClick={() => setMenuOpen(!menuOpen)}
             aria-label="Toggle menu"
           >
-            <svg
-              width="20"
-              height="20"
-              viewBox="0 0 20 20"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="1.5"
-            >
+            <svg width="18" height="18" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
               {menuOpen ? (
                 <>
-                  <line x1="4" y1="4" x2="16" y2="16" />
-                  <line x1="16" y1="4" x2="4" y2="16" />
+                  <line x1="3" y1="3" x2="15" y2="15" />
+                  <line x1="15" y1="3" x2="3" y2="15" />
                 </>
               ) : (
                 <>
-                  <line x1="3" y1="6" x2="17" y2="6" />
-                  <line x1="3" y1="10" x2="17" y2="10" />
-                  <line x1="3" y1="14" x2="17" y2="14" />
+                  <line x1="2" y1="5" x2="16" y2="5" />
+                  <line x1="2" y1="9" x2="16" y2="9" />
+                  <line x1="2" y1="13" x2="16" y2="13" />
                 </>
               )}
             </svg>
@@ -108,47 +102,25 @@ export default function Navbar() {
 
         {/* Mobile menu */}
         {menuOpen && (
-          <div className="md:hidden border-t border-sp-border bg-sp-surface/95 backdrop-blur-md py-4 flex flex-col gap-4 px-2">
+          <div className="md:hidden py-3 pb-5 flex flex-col gap-1 border-t border-sp-border/40">
+            {NAV_LINKS.map((link) => (
+              <a
+                key={link.label}
+                href={link.href}
+                className={`px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                  isActive(link.href)
+                    ? "text-sp-white bg-sp-primary/10"
+                    : "text-sp-muted hover:text-sp-white hover:bg-sp-surface"
+                }`}
+                onClick={() => setMenuOpen(false)}
+              >
+                {link.label}
+              </a>
+            ))}
+            <div className="h-px bg-sp-border/40 my-2" />
             <a
-              href="#"
-              className="text-sp-muted hover:text-sp-white text-sm transition-colors px-2 py-1"
-              onClick={() => setMenuOpen(false)}
-            >
-              Docs
-            </a>
-            <a
-              href="/demo?mode=presentation"
-              className="text-sp-muted hover:text-sp-white text-sm transition-colors px-2 py-1"
-              onClick={() => setMenuOpen(false)}
-            >
-              Demo
-            </a>
-            <a
-              href="/explorer"
-              className="text-sp-muted hover:text-sp-white text-sm transition-colors px-2 py-1"
-              onClick={() => setMenuOpen(false)}
-            >
-              Explorer
-            </a>
-            <a
-              href="/leaderboard"
-              className="text-sp-muted hover:text-sp-white text-sm transition-colors px-2 py-1"
-              onClick={() => setMenuOpen(false)}
-            >
-              Leaderboard
-            </a>
-            <a
-              href="https://github.com"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sp-muted hover:text-sp-white text-sm transition-colors px-2 py-1"
-              onClick={() => setMenuOpen(false)}
-            >
-              GitHub
-            </a>
-            <a
-              href="#waitlist"
-              className="bg-sp-primary hover:bg-blue-500 text-white text-sm px-4 py-2 rounded-md transition-colors text-center btn-shimmer"
+              href="/#waitlist"
+              className="mx-1 bg-sp-primary hover:bg-blue-500 text-white text-sm px-4 py-2.5 rounded-lg font-medium transition-colors text-center btn-shimmer"
               onClick={() => setMenuOpen(false)}
             >
               Request Access
