@@ -10,7 +10,8 @@ import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
   title: "SwarmPay — Trust Infrastructure for AI Agents",
-  description: "Behavioral trust scores for AI agents on Base mainnet. Score, explore, and rank agents by on-chain reputation.",
+  description:
+    "Behavioral trust scores for AI agents on Base mainnet. Score, explore, and rank agents by on-chain reputation.",
 };
 
 export default function Home() {
@@ -18,75 +19,126 @@ export default function Home() {
     <main className="min-h-screen bg-sp-bg">
       <Navbar />
       <Hero />
-      <Demo />
+
+      {/* Thin divider */}
+      <div className="section-divider" />
+
       <HowItWorks />
-      <UseCases />
-      <ApiSnippet />
 
-      {/* Features highlight */}
-      <section className="py-20 px-4">
-        <div className="max-w-5xl mx-auto">
-          <p className="text-xs font-mono text-sp-primary uppercase tracking-widest text-center mb-3">EXPLORE THE PLATFORM</p>
-          <h2 className="font-display text-2xl md:text-3xl text-sp-white text-center mb-10">
-            Everything you need to evaluate AI agents
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="bg-sp-surface border border-sp-border rounded-xl p-6 flex flex-col gap-4 card-hover">
-              <div className="w-8 h-8 rounded-lg bg-sp-primary/10 border border-sp-primary/20 flex items-center justify-center">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#2F80ED" strokeWidth="1.5">
-                  <circle cx="7" cy="7" r="5"/><path d="M11 11l3 3" strokeLinecap="round"/>
+      <div className="section-divider" />
+
+      {/* Explorer + Leaderboard feature callout */}
+      <section className="py-28 px-4">
+        <div className="max-w-6xl mx-auto">
+          <div className="mb-14">
+            <p className="text-xs font-mono text-sp-primary uppercase tracking-widest mb-3">EXPLORE THE PLATFORM</p>
+            <h2 className="font-display text-3xl md:text-4xl font-bold text-sp-white mb-4">
+              Everything you need to evaluate AI agents
+            </h2>
+            <p className="text-sp-muted text-base max-w-xl leading-relaxed">
+              From real-time scores to historical leaderboards — built for the teams that need to trust AI agents with real money.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            {/* Explorer card */}
+            <a href="/explorer" className="feature-card rounded-2xl p-7 flex flex-col gap-5 group">
+              <div className="w-10 h-10 rounded-xl bg-sp-primary/10 border border-sp-primary/20 flex items-center justify-center text-sp-primary">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <circle cx="9" cy="9" r="6"/><path d="M14 14l4 4" strokeLinecap="round"/>
                 </svg>
               </div>
               <div>
-                <h3 className="font-display font-semibold text-sp-white mb-1">Agent Explorer</h3>
-                <p className="text-sp-muted text-sm leading-relaxed">Score any AI agent on Base mainnet instantly</p>
+                <h3 className="font-display font-semibold text-sp-white mb-2 text-lg group-hover:text-sp-primary transition-colors">
+                  Agent Explorer
+                </h3>
+                <p className="text-sp-muted text-sm leading-relaxed">
+                  Enter any Base mainnet address. Get a full behavioral trust profile in seconds — score, tier, signals, and transaction history.
+                </p>
               </div>
-              <a href="/explorer" className="mt-auto text-sp-primary text-sm hover:text-blue-400 transition-colors font-medium">
+              <span className="mt-auto text-sp-primary text-sm font-medium group-hover:translate-x-1 transition-transform inline-block">
                 Try Explorer →
-              </a>
-            </div>
+              </span>
+            </a>
 
-            <div className="bg-sp-surface border border-sp-border rounded-xl p-6 flex flex-col gap-4 card-hover">
-              <div className="w-8 h-8 rounded-lg bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#27AE60" strokeWidth="1.5">
-                  <path d="M2 12l4-4 3 3 5-6" strokeLinecap="round" strokeLinejoin="round"/>
+            {/* Leaderboard card */}
+            <a href="/leaderboard" className="feature-card rounded-2xl p-7 flex flex-col gap-5 group">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <path d="M3 16l4.5-5 4 4 5.5-7" strokeLinecap="round" strokeLinejoin="round"/>
                 </svg>
               </div>
               <div>
-                <h3 className="font-display font-semibold text-sp-white mb-1">Leaderboard</h3>
-                <p className="text-sp-muted text-sm leading-relaxed">See the top agents by behavioral trust score</p>
+                <h3 className="font-display font-semibold text-sp-white mb-2 text-lg group-hover:text-emerald-400 transition-colors">
+                  Leaderboard
+                </h3>
+                <p className="text-sp-muted text-sm leading-relaxed">
+                  See the top AI agents on Base ranked by behavioral trust score. Updated every hour from live on-chain data.
+                </p>
               </div>
-              <a href="/leaderboard" className="mt-auto text-sp-primary text-sm hover:text-blue-400 transition-colors font-medium">
+              <span className="mt-auto text-sp-primary text-sm font-medium group-hover:translate-x-1 transition-transform inline-block">
                 View Leaderboard →
-              </a>
-            </div>
+              </span>
+            </a>
 
-            <div className="bg-sp-surface border border-sp-border rounded-xl p-6 flex flex-col gap-4 card-hover">
-              <div className="w-8 h-8 rounded-lg bg-purple-500/10 border border-purple-500/20 flex items-center justify-center">
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="#9B59B6" strokeWidth="1.5">
-                  <polygon points="5,2 14,8 5,14" strokeLinejoin="round"/>
+            {/* Demo card */}
+            <a href="/demo?mode=presentation" className="feature-card rounded-2xl p-7 flex flex-col gap-5 group">
+              <div className="w-10 h-10 rounded-xl bg-purple-500/10 border border-purple-500/20 flex items-center justify-center text-purple-400">
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="1.5">
+                  <polygon points="5,3 17,10 5,17" strokeLinejoin="round"/>
                 </svg>
               </div>
               <div>
-                <h3 className="font-display font-semibold text-sp-white mb-1">Live Demo</h3>
-                <p className="text-sp-muted text-sm leading-relaxed">Watch a real x402 payment happen in milliseconds</p>
+                <h3 className="font-display font-semibold text-sp-white mb-2 text-lg group-hover:text-purple-400 transition-colors">
+                  Live Demo
+                </h3>
+                <p className="text-sp-muted text-sm leading-relaxed">
+                  Watch a real x402 payment flow with SwarmPay trust gating. Good agent passes. Bad agent gets blocked.
+                </p>
               </div>
-              <a href="/demo?mode=presentation" className="mt-auto text-sp-primary text-sm hover:text-blue-400 transition-colors font-medium">
+              <span className="mt-auto text-sp-primary text-sm font-medium group-hover:translate-x-1 transition-transform inline-block">
                 Run Demo →
-              </a>
-            </div>
+              </span>
+            </a>
           </div>
         </div>
       </section>
 
-      <section id="waitlist" className="py-24 px-4">
-        <div className="max-w-2xl mx-auto text-center">
+      <div className="section-divider" />
+
+      <Demo />
+
+      <div className="section-divider" />
+
+      <UseCases />
+
+      <div className="section-divider" />
+
+      <ApiSnippet />
+
+      <div className="section-divider" />
+
+      {/* Waitlist */}
+      <section id="waitlist" className="py-28 px-4 relative overflow-hidden">
+        {/* Background glow */}
+        <div
+          className="absolute inset-0 pointer-events-none"
+          style={{
+            background: "radial-gradient(ellipse 70% 60% at 50% 50%, rgba(47,128,237,0.05) 0%, transparent 70%)",
+          }}
+        />
+        <div className="relative max-w-2xl mx-auto text-center">
           <p className="text-xs font-mono text-sp-primary uppercase tracking-widest mb-3">EARLY ACCESS</p>
-          <h2 className="font-display text-3xl md:text-4xl text-sp-white mb-4">We&apos;re onboarding design partners</h2>
-          <p className="text-sp-muted mb-10 leading-relaxed">Free API access in exchange for 30 minutes of feedback per month. Limited spots.</p>
-          <WaitlistForm source="homepage" label="Request early access — no spam, unsubscribe anytime." />
+          <h2 className="font-display text-3xl md:text-4xl font-bold text-sp-white mb-4">
+            We&apos;re onboarding design partners
+          </h2>
+          <p className="text-sp-muted mb-10 leading-relaxed max-w-lg mx-auto">
+            Free API access in exchange for 30 minutes of feedback per month. Limited spots — we&apos;re working closely with early partners.
+          </p>
+          <WaitlistForm source="homepage" label="Join the waitlist — no spam, unsubscribe anytime." />
         </div>
       </section>
+
       <Footer />
     </main>
   );
