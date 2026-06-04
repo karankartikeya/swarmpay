@@ -19,6 +19,7 @@ app.add_middleware(
         "https://swarmpay.tech",
         "https://www.swarmpay.tech",
         "https://swarmpay.viberank.co.in",
+        "https://api.swarmpay.viberank.co.in",
         "http://localhost:3000",
     ],
     allow_credentials=True,

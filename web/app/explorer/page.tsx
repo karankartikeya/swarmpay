@@ -64,7 +64,7 @@ function ExplorerInner() {
   const [badgeOpen, setBadgeOpen] = useState(false);
   const [copied, setCopied] = useState<"md" | "html" | null>(null);
 
-  const API_BASE = "https://api.swarmpay.viberank.co.in";
+  const API_BASE = (process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000").replace(/\/$/, "");
 
   function copySnippet(text: string, type: "md" | "html") {
     navigator.clipboard.writeText(text);
