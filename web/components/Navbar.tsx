@@ -49,13 +49,19 @@ export default function Navbar() {
               Demo
             </a>
             <a
+              href="/explorer"
+              className="text-sp-muted hover:text-sp-white text-sm transition-colors"
+            >
+              Explorer
+            </a>
+            {/* <a
               href="https://github.com"
               target="_blank"
               rel="noopener noreferrer"
               className="text-sp-muted hover:text-sp-white text-sm transition-colors"
             >
               GitHub
-            </a>
+            </a> */}
             <a
               href="#waitlist"
               className="bg-sp-primary hover:bg-blue-500 text-white text-sm px-4 py-2 rounded-md transition-colors btn-shimmer"
@@ -110,6 +116,13 @@ export default function Navbar() {
               onClick={() => setMenuOpen(false)}
             >
               Demo
+            </a>
+            <a
+              href="/explorer"
+              className="text-sp-muted hover:text-sp-white text-sm transition-colors px-2 py-1"
+              onClick={() => setMenuOpen(false)}
+            >
+              Explorer
             </a>
             <a
               href="https://github.com"
