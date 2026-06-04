@@ -87,7 +87,7 @@ export default function Waitlist() {
                 You&apos;re on the list.
               </h3>
               <p className="text-sp-muted text-sm">
-                We&apos;ll reach out within 48 hours.
+                We&apos;ll reach out to you soon.
               </p>
             </div>
           ) : (
