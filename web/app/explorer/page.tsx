@@ -61,6 +61,16 @@ function ExplorerInner() {
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<ExploreResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [badgeOpen, setBadgeOpen] = useState(false);
+  const [copied, setCopied] = useState<"md" | "html" | null>(null);
+
+  const API_BASE = "https://api.swarmpay.viberank.co.in";
+
+  function copySnippet(text: string, type: "md" | "html") {
+    navigator.clipboard.writeText(text);
+    setCopied(type);
+    setTimeout(() => setCopied(null), 2000);
+  }
 
   async function analyze(addr: string) {
     const trimmed = addr.trim();
@@ -250,6 +260,66 @@ function ExplorerInner() {
             )}
 
             {/* Recent transactions */}
+            {/* Embed Badge */}
+            {(() => {
+              const badgeUrl = `${API_BASE}/v0/badge/${result.address}`;
+              const mdSnippet = `![SwarmPay Score](${badgeUrl})`;
+              const htmlSnippet = `<img src="${badgeUrl}" alt="SwarmPay Score" />`;
+              return (
+                <div className="rounded-xl border border-sp-border bg-sp-surface overflow-hidden">
+                  <button
+                    onClick={() => setBadgeOpen((o) => !o)}
+                    className="w-full flex items-center justify-between px-6 py-4 text-left hover:bg-sp-bg/40 transition-colors"
+                  >
+                    <span className="text-sm font-semibold text-sp-white">Embed Badge</span>
+                    <svg
+                      width="16" height="16" viewBox="0 0 16 16" fill="none"
+                      stroke="currentColor" strokeWidth="1.5"
+                      className={`text-sp-muted transition-transform ${badgeOpen ? "rotate-180" : ""}`}
+                    >
+                      <polyline points="4 6 8 10 12 6" />
+                    </svg>
+                  </button>
+                  {badgeOpen && (
+                    <div className="px-6 pb-6 flex flex-col gap-4 border-t border-sp-border pt-4">
+                      {/* Preview */}
+                      <div>
+                        <p className="text-xs text-sp-muted mb-2">Preview</p>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={badgeUrl} alt="SwarmPay Score badge" />
+                      </div>
+                      {/* Markdown */}
+                      <div>
+                        <p className="text-xs text-sp-muted mb-1.5">Markdown</p>
+                        <div className="flex items-center gap-2 bg-sp-bg rounded-md px-3 py-2 border border-sp-border">
+                          <code className="text-xs text-sp-white font-mono flex-1 break-all">{mdSnippet}</code>
+                          <button
+                            onClick={() => copySnippet(mdSnippet, "md")}
+                            className="shrink-0 text-xs text-sp-primary hover:text-blue-400 transition-colors"
+                          >
+                            {copied === "md" ? "Copied!" : "Copy"}
+                          </button>
+                        </div>
+                      </div>
+                      {/* HTML */}
+                      <div>
+                        <p className="text-xs text-sp-muted mb-1.5">HTML</p>
+                        <div className="flex items-center gap-2 bg-sp-bg rounded-md px-3 py-2 border border-sp-border">
+                          <code className="text-xs text-sp-white font-mono flex-1 break-all">{htmlSnippet}</code>
+                          <button
+                            onClick={() => copySnippet(htmlSnippet, "html")}
+                            className="shrink-0 text-xs text-sp-primary hover:text-blue-400 transition-colors"
+                          >
+                            {copied === "html" ? "Copied!" : "Copy"}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+
             {result.recent_transactions && result.recent_transactions.length > 0 && (
               <div className="rounded-xl border border-sp-border bg-sp-surface p-6">
                 <h2 className="text-sm font-semibold text-sp-white mb-5">Recent Transactions</h2>

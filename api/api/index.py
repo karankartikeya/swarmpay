@@ -5,6 +5,7 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 import re
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import Response
 from chain import get_agent_feedback, get_identity, get_payment_history, is_valid_address
 from basescan import get_transactions, get_erc20_transfers
 from behavioral_score import compute_behavioral_score
@@ -172,6 +173,61 @@ def explore_address(address: str):
         "powered_by": "SwarmPay Behavioral Intelligence",
         "network": "base-mainnet",
     }
+
+
+_TIER_COLORS = {
+    "AAA": "#1ABC9C",
+    "AA":  "#27AE60",
+    "A":   "#2F80ED",
+    "C":   "#E4C63A",
+    "Unrated": "#9B9B9B",
+}
+
+def _make_badge_svg(score: int, tier: str) -> str:
+    right_color = _TIER_COLORS.get(tier, "#9B9B9B")
+    right_text = f"{score} | {tier}"
+    return f"""<svg xmlns="http://www.w3.org/2000/svg" width="200" height="20">
+  <linearGradient id="s" x2="0" y2="100%">
+    <stop offset="0" stop-color="#bbb" stop-opacity=".1"/>
+    <stop offset="1" stop-opacity=".1"/>
+  </linearGradient>
+  <clipPath id="r">
+    <rect width="200" height="20" rx="3" fill="#fff"/>
+  </clipPath>
+  <g clip-path="url(#r)">
+    <rect width="90" height="20" fill="#555"/>
+    <rect x="90" width="110" height="20" fill="{right_color}"/>
+    <rect width="200" height="20" fill="url(#s)"/>
+  </g>
+  <g fill="#fff" font-family="Verdana,Geneva,sans-serif" font-size="11" text-anchor="middle">
+    <text x="45" y="15" fill="#010101" fill-opacity=".3">SwarmPay Score</text>
+    <text x="45" y="14">SwarmPay Score</text>
+    <text x="145" y="15" fill="#010101" fill-opacity=".3">{right_text}</text>
+    <text x="145" y="14">{right_text}</text>
+  </g>
+</svg>"""
+
+
+@app.get("/v0/badge/{address}")
+def get_badge(address: str):
+    if not _ETH_ADDRESS_RE.match(address):
+        raise HTTPException(status_code=400, detail="Invalid Ethereum address")
+
+    txs = get_transactions(address)
+    erc20_txs = get_erc20_transfers(address)
+
+    if not txs:
+        score, tier = 0, "Unrated"
+    else:
+        result = compute_behavioral_score(txs, erc20_txs, address)
+        score, tier = result["score"], result["tier"]
+
+    svg = _make_badge_svg(score, tier)
+    return Response(
+        content=svg,
+        media_type="image/svg+xml",
+        headers={"Cache-Control": "no-cache, max-age=3600"},
+    )
 
 
 @app.get("/v1/why/{reason}")
