@@ -27,20 +27,20 @@ export default function ImprintPage() {
           <p>
             SwarmPay<br />
             A product of Viberank Technologies<br />
-            India
+            Germany
           </p>
 
           <h2>Contact</h2>
           <p>
-            Email: <a href="mailto:hello@swarmpay.tech">hello@swarmpay.tech</a><br />
+            Email: <a href="mailto:karan@swarmpay.tech">karan@swarmpay.tech</a><br />
             Website: <a href="https://swarmpay.tech">swarmpay.tech</a>
           </p>
 
           <h2>Responsible for Content</h2>
           <p>
             Karan Kartikeya<br />
-            SwarmPay / Viberank Technologies<br />
-            Email: <a href="mailto:hello@swarmpay.tech">hello@swarmpay.tech</a>
+            SwarmPay<br />
+            Email: <a href="mailto:karan@swarmpay.tech">karan@swarmpay.tech</a>
           </p>
 
           <h2>Platform Status</h2>
