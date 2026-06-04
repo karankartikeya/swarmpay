@@ -2,6 +2,13 @@
 
 import { useEffect, useState } from "react";
 
+const STATS = [
+  { value: "< 200ms", label: "API latency" },
+  { value: "Base", label: "Mainnet" },
+  { value: "6", label: "Trust signals" },
+  { value: "AAA–C", label: "Tier system" },
+];
+
 export default function Hero() {
   const [mounted, setMounted] = useState(false);
 
@@ -10,102 +17,142 @@ export default function Hero() {
   }, []);
 
   return (
-    <section className="relative min-h-screen flex flex-col items-center justify-center text-center px-4 pb-[120px] overflow-hidden">
-      {/* Background grid */}
-      <div
-        className="absolute inset-0 opacity-[0.03]"
-        style={{
-          backgroundImage:
-            "linear-gradient(#2F80ED 1px, transparent 1px), linear-gradient(90deg, #2F80ED 1px, transparent 1px)",
-          backgroundSize: "80px 80px",
-        }}
-      />
+    <section className="relative min-h-[100svh] flex flex-col items-center justify-center text-center px-4 pb-[80px] overflow-hidden">
 
-      {/* Radial glow */}
+      {/* ── Background layers ── */}
+
+      {/* Deep radial glow behind hero */}
       <div
-        className="absolute inset-0"
+        className="absolute inset-0 pointer-events-none"
         style={{
           background:
-            "radial-gradient(ellipse 80% 60% at 50% 50%, rgba(47,128,237,0.06) 0%, transparent 70%)",
+            "radial-gradient(ellipse 100% 70% at 50% 10%, rgba(47,128,237,0.07) 0%, transparent 65%)",
         }}
       />
 
-      <div className="relative z-10 flex flex-col items-center">
-        {/* Badge */}
+      {/* Subtle grid */}
+      <div
+        className="absolute inset-0 pointer-events-none opacity-[0.025]"
+        style={{
+          backgroundImage:
+            "linear-gradient(rgba(47,128,237,0.8) 1px, transparent 1px), linear-gradient(90deg, rgba(47,128,237,0.8) 1px, transparent 1px)",
+          backgroundSize: "64px 64px",
+        }}
+      />
+
+      {/* Horizontal glow lines (Stripe-like) */}
+      <div
+        className="absolute top-1/3 left-0 right-0 h-px pointer-events-none"
+        style={{
+          background:
+            "linear-gradient(90deg, transparent 0%, rgba(47,128,237,0.15) 30%, rgba(47,128,237,0.25) 50%, rgba(47,128,237,0.15) 70%, transparent 100%)",
+        }}
+      />
+
+      {/* Floating orbs */}
+      <div
+        className="absolute top-20 left-[10%] w-64 h-64 rounded-full pointer-events-none animate-glow-pulse"
+        style={{
+          background:
+            "radial-gradient(circle, rgba(47,128,237,0.06) 0%, transparent 70%)",
+          filter: "blur(40px)",
+        }}
+      />
+      <div
+        className="absolute bottom-32 right-[8%] w-80 h-80 rounded-full pointer-events-none animate-glow-pulse animate-delay-500"
+        style={{
+          background:
+            "radial-gradient(circle, rgba(139,92,246,0.05) 0%, transparent 70%)",
+          filter: "blur(50px)",
+        }}
+      />
+
+      {/* ── Content ── */}
+      <div className="relative z-10 flex flex-col items-center max-w-5xl w-full mx-auto">
+
+        {/* Status badge */}
         <div
-          className={`transition-opacity duration-700 ${mounted ? "opacity-100" : "opacity-0"}`}
+          className={`transition-all duration-700 ${
+            mounted ? "opacity-100 translate-y-0" : "opacity-0 translate-y-4"
+          }`}
         >
-          <span className="inline-flex items-center rounded-full border border-sp-border bg-sp-surface px-4 py-1.5 text-sm font-mono text-sp-muted mb-8">
-            <span className="inline-block w-2 h-2 rounded-full bg-sp-success mr-2 animate-pulse-dot" />
-            LIVE &nbsp;·&nbsp; Built on ERC-8004 + x402
+          <span className="inline-flex items-center gap-2.5 rounded-full border border-sp-border bg-sp-surface/80 backdrop-blur-sm px-4 py-1.5 text-xs font-mono text-sp-muted mb-10 shadow-lg">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sp-success opacity-60" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-sp-success" />
+            </span>
+            Live on Base Mainnet · ERC-8004 + x402
           </span>
         </div>
 
         {/* Headline */}
-        <h1 className="text-[40px] md:text-[72px] leading-tight font-display font-bold text-sp-white mb-0">
+        <h1 className="font-display font-bold leading-[1.06] tracking-tight mb-0">
           <span
-            className={`block animate-fade-slide-up animate-delay-100 ${mounted ? "" : "opacity-0"}`}
+            className={`block text-[clamp(40px,7vw,80px)] text-sp-white animate-fade-slide-up animate-delay-100`}
           >
-            The Credit Bureau
+            Trust Infrastructure
           </span>
           <span
-            className={`block bg-gradient-to-r from-sp-primary to-blue-300 bg-clip-text text-transparent animate-fade-slide-up animate-delay-200 ${mounted ? "" : "opacity-0"}`}
+            className={`block text-[clamp(40px,7vw,80px)] gradient-text animate-fade-slide-up animate-delay-200`}
           >
             for AI Agents
           </span>
         </h1>
 
-        {/* Subheadline */}
+        {/* Sub headline */}
         <p
-          className={`max-w-2xl mx-auto text-sp-muted text-xl leading-relaxed font-body mt-6 animate-fade-slide-up animate-delay-300 ${mounted ? "" : "opacity-0"}`}
+          className={`max-w-2xl text-sp-muted text-lg sm:text-xl leading-relaxed font-body mt-6 animate-fade-slide-up animate-delay-300`}
         >
-          SwarmPay indexes on-chain reputation signals, x402 payment proofs, and
-          ERC-8004 attestations into a unified credit score — so insurers,
-          marketplaces, and lenders can price agent risk in real time.
+          SwarmPay indexes on-chain behavioral signals into a unified trust score — so
+          merchants, marketplaces, and lenders can price agent risk in real time.
         </p>
 
         {/* CTAs */}
         <div
-          className={`flex flex-col sm:flex-row gap-4 mt-10 animate-fade-slide-up animate-delay-400 ${mounted ? "" : "opacity-0"}`}
+          className={`flex flex-col sm:flex-row gap-3 mt-10 animate-fade-slide-up animate-delay-400`}
         >
           <a
-            href="#demo"
-            className="bg-sp-primary hover:bg-blue-500 text-white px-8 py-3 rounded-md font-medium transition-colors btn-shimmer"
+            href="/explorer"
+            className="group relative bg-sp-primary hover:bg-blue-500 text-white px-7 py-3.5 rounded-lg font-semibold transition-all duration-200 btn-shimmer shadow-lg shadow-sp-primary/20 hover:shadow-sp-primary/40"
           >
-            Try the API →
+            Explore an Agent
+            <span className="ml-2 group-hover:translate-x-1 inline-block transition-transform">→</span>
           </a>
           <a
-            href="#"
-            className="border border-sp-primary text-sp-primary hover:bg-sp-primary hover:text-white px-8 py-3 rounded-md transition-colors"
+            href="/demo?mode=presentation"
+            className="border border-sp-border hover:border-sp-primary/40 text-sp-muted hover:text-sp-white bg-sp-surface/50 hover:bg-sp-surface px-7 py-3.5 rounded-lg font-medium transition-all duration-200 backdrop-blur-sm"
           >
-            Read the Docs
+            Watch Live Demo
           </a>
         </div>
 
-        {/* Stats row */}
+        {/* Stats bar */}
         <div
-          className={`flex flex-wrap gap-4 sm:gap-6 items-center justify-center mt-10 font-mono text-sm text-sp-muted animate-fade-slide-up animate-delay-500 ${mounted ? "" : "opacity-0"}`}
+          className={`mt-16 w-full max-w-2xl animate-fade-slide-up animate-delay-500`}
         >
-          <span>ERC-8004 Native</span>
-          <span className="w-px h-4 bg-sp-border inline-block" />
-          <span>x402 Integrated</span>
-          <span className="w-px h-4 bg-sp-border inline-block" />
-          <span>Base Mainnet</span>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-px bg-sp-border rounded-xl overflow-hidden border border-sp-border">
+            {STATS.map((stat, i) => (
+              <div
+                key={stat.label}
+                className={`bg-sp-surface/60 backdrop-blur-sm px-5 py-4 flex flex-col items-center gap-0.5 ${
+                  i === 0 ? "rounded-l-xl" : i === 3 ? "rounded-r-xl" : ""
+                }`}
+              >
+                <span className="font-display font-bold text-sp-white text-lg stat-number">
+                  {stat.value}
+                </span>
+                <span className="text-sp-muted text-xs font-mono uppercase tracking-wide">
+                  {stat.label}
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
       {/* Scroll indicator */}
-      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-sp-muted animate-chevron-bounce">
-        <svg
-          width="24"
-          height="24"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="1.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-        >
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-sp-muted/40 animate-chevron-bounce">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
           <polyline points="6 9 12 15 18 9" />
         </svg>
       </div>
