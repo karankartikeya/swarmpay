@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import { Space_Grotesk, JetBrains_Mono, DM_Sans } from "next/font/google";
+import Script from "next/script";
 import "./globals.css";
-import { Analytics } from "@vercel/analytics/next"
+import { Analytics } from "@vercel/analytics/next";
+import CookieBanner from "@/components/CookieBanner";
 
 const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
@@ -22,19 +24,20 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "SwarmPay — Credit Bureau for AI Agents",
+  title: "SwarmPay — Trust Infrastructure for AI Agents",
   description:
-    "The financial trust layer for the agent economy. Query any agent address for a real-time credit score built on ERC-8004 reputation data and x402 payment history.",
+    "Behavioral trust scores for AI agents on Base mainnet. Score, explore, and rank agents by on-chain reputation.",
   openGraph: {
-    title: "SwarmPay — Credit Bureau for AI Agents",
+    title: "SwarmPay — Trust Infrastructure for AI Agents",
     description:
-      "The financial trust layer for the agent economy. Query any agent address for a real-time credit score.",
+      "The financial trust layer for the agent economy. Query any agent address for a real-time behavioral trust score.",
     images: ["/og.png"],
     type: "website",
+    url: "https://swarmpay.tech",
   },
   twitter: {
     card: "summary_large_image",
-    title: "SwarmPay — Credit Bureau for AI Agents",
+    title: "SwarmPay — Trust Infrastructure for AI Agents",
     description: "The financial trust layer for the agent economy.",
     images: ["/og.png"],
   },
@@ -43,6 +46,7 @@ export const metadata: Metadata = {
     shortcut: "/swarmpay-logo.png",
     apple: "/swarmpay-logo.png",
   },
+  metadataBase: new URL("https://swarmpay.tech"),
 };
 
 export default function RootLayout({
@@ -56,10 +60,35 @@ export default function RootLayout({
       className={`${spaceGrotesk.variable} ${jetbrainsMono.variable} ${dmSans.variable}`}
       style={{ scrollBehavior: "smooth", backgroundColor: "#080B10" }}
     >
-      <body
-        className={`${dmSans.className} antialiased bg-sp-bg text-sp-white`}
-      >
+      <head>
+        {/* Google Tag Manager — only fires after cookie consent (managed by CookieBanner) */}
+        <Script
+          id="gtag-init"
+          strategy="afterInteractive"
+          src="https://www.googletagmanager.com/gtag/js?id=G-KQ0HYYGJFR"
+        />
+        <Script
+          id="gtag-config"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              // Default consent — denied until user accepts
+              gtag('consent', 'default', {
+                analytics_storage: 'denied',
+                ad_storage: 'denied',
+                wait_for_update: 500,
+              });
+              gtag('config', 'G-KQ0HYYGJFR', { send_page_view: false });
+            `,
+          }}
+        />
+      </head>
+      <body className={`${dmSans.className} antialiased bg-sp-bg text-sp-white`}>
         {children}
+        <CookieBanner />
         <Analytics />
       </body>
     </html>
