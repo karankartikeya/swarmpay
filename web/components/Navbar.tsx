@@ -54,7 +54,13 @@ export default function Navbar() {
             >
               Explorer
             </a>
-            {/* <a
+            <a
+              href="/leaderboard"
+              className="text-sp-muted hover:text-sp-white text-sm transition-colors"
+            >
+              Leaderboard
+            </a>
+            {/* <
               href="https://github.com"
               target="_blank"
               rel="noopener noreferrer"
@@ -123,6 +129,13 @@ export default function Navbar() {
               onClick={() => setMenuOpen(false)}
             >
               Explorer
+            </a>
+            <a
+              href="/leaderboard"
+              className="text-sp-muted hover:text-sp-white text-sm transition-colors px-2 py-1"
+              onClick={() => setMenuOpen(false)}
+            >
+              Leaderboard
             </a>
             <a
               href="https://github.com"

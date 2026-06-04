@@ -3,7 +3,8 @@ import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import re
-from fastapi import FastAPI, HTTPException
+import time
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import Response
 from chain import get_agent_feedback, get_identity, get_payment_history, is_valid_address
@@ -229,6 +230,77 @@ def get_badge(address: str):
         media_type="image/svg+xml",
         headers={"Cache-Control": "no-cache, max-age=3600"},
     )
+
+
+# ── Leaderboard ──────────────────────────────────────────────────────────────
+
+_SEED_ADDRESSES = [
+    "0x572b8caf4FbEAC5358946acD2C5EFfeeB035D028",  # SwarmPay demo
+    "0xd8dA6BF26964aF9D7eEd9e03E53415D37aA96045",  # vitalik.eth
+    "0x3304E22DDaa22bCdC5fCa2269b418046aE7b566A",  # Base early deployer
+    "0x77777777770B7bC0b6E0E2b9dC9b1F06C0A8C5D5",  # Active Base trader
+    "0x6969696969696969696969696969696969696969",  # Known Base meme addr
+    "0xAbCd1234567890aBcD1234567890aBcD12345678",  # Placeholder active
+    "0x000000000000000000000000000000000000dEaD",  # Burn address
+    "0xbaAA2a3237035A2c7fA2A33c76B44a8C6Fe18e87",  # Base active EOA
+    "0x4752ba5DBc23f44D87826276BF6Fd6b1C372aD24",  # Uniswap v3 router Base
+    "0x2626664c2603336E57B271c5C0b26F421741e481",  # Uniswap v3 swap router
+    "0xDef1C0ded9bec7F1a1670819833240f027b25EfF",  # 0x exchange proxy
+    "0x7a250d5630B4cF539739dF2C5dAcb4c659F2488D",  # Uniswap v2 router
+]
+
+_leaderboard_cache: dict = {"ts": 0.0, "data": []}
+_CACHE_TTL = 3600  # 1 hour
+
+
+def _score_address(address: str) -> dict | None:
+    try:
+        txs = get_transactions(address)
+        erc20_txs = get_erc20_transfers(address)
+        if not txs:
+            return None
+        result = compute_behavioral_score(txs, erc20_txs, address)
+        return {
+            "address": address,
+            "short": address[:6] + "…" + address[-4:],
+            "score": result["score"],
+            "tier": result["tier"],
+            "total_txs": result["signals"]["total_transactions"],
+            "wallet_age_days": result["signals"]["wallet_age_days"],
+        }
+    except Exception:
+        return None
+
+
+@app.get("/v0/leaderboard")
+def get_leaderboard(refresh: bool = Query(default=False)):
+    global _leaderboard_cache
+    now = time.time()
+    if not refresh and now - _leaderboard_cache["ts"] < _CACHE_TTL and _leaderboard_cache["data"]:
+        return {
+            "entries": _leaderboard_cache["data"],
+            "cached_at": datetime.fromtimestamp(_leaderboard_cache["ts"], tz=timezone.utc).isoformat(),
+            "network": "base-mainnet",
+        }
+
+    scored = []
+    for addr in _SEED_ADDRESSES:
+        entry = _score_address(addr)
+        if entry:
+            scored.append(entry)
+
+    scored.sort(key=lambda x: x["score"], reverse=True)
+    for i, entry in enumerate(scored[:10]):
+        entry["rank"] = i + 1
+
+    top10 = scored[:10]
+    _leaderboard_cache = {"ts": now, "data": top10}
+
+    return {
+        "entries": top10,
+        "cached_at": datetime.fromtimestamp(now, tz=timezone.utc).isoformat(),
+        "network": "base-mainnet",
+    }
 
 
 @app.get("/v1/why/{reason}")
