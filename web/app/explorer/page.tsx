@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
+import WaitlistForm from "@/components/WaitlistForm";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
 
@@ -128,6 +129,13 @@ function ExplorerInner() {
             </button>
           </form>
         </div>
+
+        {/* Waitlist */}
+        {!result && !loading && (
+          <div className="mt-6 animate-fade-slide-up animate-delay-200">
+            <WaitlistForm source="explorer" label="Join the waitlist to get API access" />
+          </div>
+        )}
 
         {/* Loading */}
         {loading && (
