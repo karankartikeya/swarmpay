@@ -38,6 +38,11 @@ export const metadata: Metadata = {
     description: "The financial trust layer for the agent economy.",
     images: ["/og.png"],
   },
+  icons: {
+    icon: "/swarmpay-logo.ico",
+    shortcut: "/swarmpay-logo.png",
+    apple: "/swarmpay-logo.png",
+  },
 };
 
 export default function RootLayout({
