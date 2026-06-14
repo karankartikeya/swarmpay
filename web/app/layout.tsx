@@ -24,11 +24,11 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "SwarmPay — Trust Infrastructure for AI Agents",
+  title: "SwarmPay — Credit Bureau for AI Agents",
   description:
     "Behavioral trust scores for AI agents on Base mainnet. Score, explore, and rank agents by on-chain reputation.",
   openGraph: {
-    title: "SwarmPay — Trust Infrastructure for AI Agents",
+    title: "SwarmPay — Credit Bureau for AI Agents",
     description:
       "The financial trust layer for the agent economy. Query any agent address for a real-time behavioral trust score.",
     images: ["/og.png"],
@@ -37,7 +37,7 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "SwarmPay — Trust Infrastructure for AI Agents",
+    title: "SwarmPay — Credit Bureau for AI Agents",
     description: "The financial trust layer for the agent economy.",
     images: ["/og.png"],
   },

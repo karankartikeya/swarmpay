@@ -18,7 +18,7 @@ export default function Footer() {
               The behavioral trust layer for the agent economy. Score any AI agent on Base mainnet in milliseconds.
             </p>
             <div className="flex items-center gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-sp-success animate-pulse-dot" />
+              {/* <span className="w-1.5 h-1.5 rounded-full bg-sp-success animate-pulse-dot" /> */}
               <span className="text-xs font-mono text-sp-muted">Live on Base Mainnet</span>
             </div>
           </div>
@@ -69,7 +69,7 @@ export default function Footer() {
           </p>
           <div className="flex items-center gap-5">
             <a
-              href="https://twitter.com"
+              href="/#"
               target="_blank"
               rel="noopener noreferrer"
               className="text-sp-muted hover:text-sp-white text-xs transition-colors"
@@ -77,7 +77,7 @@ export default function Footer() {
               Twitter
             </a>
             <a
-              href="https://github.com"
+              href="/#"
               target="_blank"
               rel="noopener noreferrer"
               className="text-sp-muted hover:text-sp-white text-xs transition-colors"

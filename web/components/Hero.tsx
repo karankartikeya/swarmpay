@@ -77,10 +77,10 @@ export default function Hero() {
           }`}
         >
           <span className="inline-flex items-center gap-2.5 rounded-full border border-sp-border bg-sp-surface/80 backdrop-blur-sm px-4 py-1.5 text-xs font-mono text-sp-muted mb-10 shadow-lg">
-            <span className="relative flex h-2 w-2">
+            {/* <span className="relative flex h-2 w-2">
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-sp-success opacity-60" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-sp-success" />
-            </span>
+            </span> */}
             Live on Base Mainnet · ERC-8004 + x402
           </span>
         </div>
@@ -90,7 +90,7 @@ export default function Hero() {
           <span
             className={`block text-[clamp(40px,7vw,80px)] text-sp-white animate-fade-slide-up animate-delay-100`}
           >
-            Trust Infrastructure
+            Credit Bureau
           </span>
           <span
             className={`block text-[clamp(40px,7vw,80px)] gradient-text animate-fade-slide-up animate-delay-200`}
@@ -103,7 +103,7 @@ export default function Hero() {
         <p
           className={`max-w-2xl text-sp-muted text-lg sm:text-xl leading-relaxed font-body mt-6 animate-fade-slide-up animate-delay-300`}
         >
-          SwarmPay indexes on-chain behavioral signals into a unified trust score — so
+          SwarmPay indexes on-chain behavioral signals into a unified trust score - so
           merchants, marketplaces, and lenders can price agent risk in real time.
         </p>
 

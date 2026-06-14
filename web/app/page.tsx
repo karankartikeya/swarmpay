@@ -9,7 +9,7 @@ import WaitlistForm from "@/components/WaitlistForm";
 import Footer from "@/components/Footer";
 
 export const metadata: Metadata = {
-  title: "SwarmPay — Trust Infrastructure for AI Agents",
+  title: "SwarmPay — Credit Bureau for AI Agents",
   description:
     "Behavioral trust scores for AI agents on Base mainnet. Score, explore, and rank agents by on-chain reputation.",
 };
