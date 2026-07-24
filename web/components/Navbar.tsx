@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 const NAV_LINKS = [
   { label: "EXPLORER", href: "/explorer" },
   { label: "LEADERBOARD", href: "/leaderboard" },
+  { label: "PROGRESS", href: "/#progress" },
   { label: "USE CASES", href: "/#use-cases" },
   { label: "DEMO", href: "/demo?mode=presentation" },
   { label: "DOCS", href: "#" },

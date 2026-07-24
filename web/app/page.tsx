@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import Navbar from "@/components/Navbar";
 import Hero from "@/components/Hero";
+import IndexProgress from "@/components/IndexProgress";
+import { fetchIndexStats } from "@/lib/stats";
 import ProblemSolution from "@/components/ProblemSolution";
 import HowItWorks from "@/components/HowItWorks";
 import IntegrationHighlight from "@/components/IntegrationHighlight";
@@ -16,7 +18,13 @@ export const metadata: Metadata = {
     "Behavioral trust scores for AI agents on Base mainnet. Score, explore, and rank agents by on-chain reputation.",
 };
 
-export default function Home() {
+// Stats are read at build/revalidate time and cached for 24h — the count
+// queries are expensive and the numbers only move once per indexer run.
+export const revalidate = 86400;
+
+export default async function Home() {
+  const stats = await fetchIndexStats();
+
   return (
     <main className="min-h-screen bg-void">
       {/* Announcement Banner */}
@@ -26,6 +34,10 @@ export default function Home() {
       </div> */}
       <Navbar />
       <Hero />
+
+      <div className="section-divider" />
+
+      <IndexProgress stats={stats} />
 
       <div className="section-divider" />
 
