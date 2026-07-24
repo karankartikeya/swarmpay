@@ -2,6 +2,8 @@
 
 import { useEffect, useRef, useState, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import Navbar from "@/components/Navbar";
+import Footer from "@/components/Footer";
 
 const AGENT_ADDRESS = "0x572b8caf4FbEAC5358946acD2C5EFfeeB035D028";
 const BAD_AGENT_ADDRESS = "0x0d5CFf2655FbDA89dF5f767335099eeFEEe55A2D";
@@ -35,16 +37,16 @@ function trunc(addr: string) {
 
 function tierBadge(tier: string | null): { label: string; bg: string; color: string } {
   if (!tier || tier === "Unrated")
-    return { label: "Unrated", bg: "#1C2333", color: "#8B949E" };
-  if (tier === "AAA") return { label: "AAA", bg: "#065F46", color: "#6EE7B7" };
-  if (tier === "AA")  return { label: "AA",  bg: "#14532D", color: "#86EFAC" };
-  return { label: tier, bg: "#1E3A5F", color: "#60A5FA" };
+    return { label: "Unrated", bg: "rgba(255,255,255,0.06)", color: "#9a9a9a" };
+  if (tier === "AAA") return { label: "AAA", bg: "rgba(21,132,110,0.18)", color: "#3ecbaa" };
+  if (tier === "AA")  return { label: "AA",  bg: "rgba(21,132,110,0.12)", color: "#5fd6b8" };
+  return { label: tier, bg: "rgba(128,82,255,0.16)", color: "#a68bff" };
 }
 
 function Label({ children, red }: { children: React.ReactNode; red?: boolean }) {
   return (
     <p className="text-xs uppercase tracking-widest font-mono mb-3"
-      style={{ color: red ? "#E74C3C" : "#8B949E" }}>
+      style={{ color: red ? "#e05a4e" : "#9a9a9a" }}>
       {children}
     </p>
   );
@@ -91,10 +93,10 @@ function UsdcCounter({ value }: { value: number }) {
   }, [value]);
 
   return (
-    <p className="font-bold leading-none transition-colors duration-300"
-      style={{ fontSize: 48, color: flash ? "#6EE7B7" : "#27AE60" }}>
+    <p className="font-bold leading-none transition-colors duration-300 font-display"
+      style={{ fontSize: 48, color: flash ? "#3ecbaa" : "#15846e" }}>
       {value.toFixed(3)}
-      <span className="text-sm font-normal ml-2" style={{ color: "#8B949E" }}>USDC</span>
+      <span className="text-sm font-normal ml-2" style={{ color: "#9a9a9a" }}>USDC</span>
     </p>
   );
 }
@@ -104,7 +106,7 @@ function Spinner() {
   return (
     <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
       style={{ animation: "spin 0.7s linear infinite" }}>
-      <circle cx="6" cy="6" r="5" stroke="#3B82F6" strokeWidth="2"
+      <circle cx="6" cy="6" r="5" stroke="#8052ff" strokeWidth="2"
         strokeDasharray="20 12" strokeLinecap="round" />
     </svg>
   );
@@ -327,7 +329,7 @@ function DemoDashboard() {
   const displayScore = isBad ? badScore : score;
   const displayTier  = isBad ? null : tier;
   const badge        = tierBadge(displayTier);
-  const accentColor  = isBad ? "#E74C3C" : "#2F80ED";
+  const accentColor  = isBad ? "#e05a4e" : "#8052ff";
 
   return (
     <>
@@ -349,316 +351,326 @@ function DemoDashboard() {
           to { transform: rotate(360deg); }
         }
         @keyframes pulse-glow {
-          0%, 100% { box-shadow: 0 0 0 0 rgba(59,130,246,0); }
-          50%       { box-shadow: 0 0 8px 2px rgba(59,130,246,0.25); }
+          0%, 100% { box-shadow: 0 0 0 0 rgba(128,82,255,0); }
+          50%       { box-shadow: 0 0 8px 2px rgba(128,82,255,0.25); }
         }
         .step-active {
           animation: pulse-glow 1.8s ease-in-out infinite;
         }
       `}</style>
 
-      <div className="relative flex h-screen w-screen overflow-hidden font-mono"
-        style={{ background: "#080B10", color: "#E6EDF3" }}>
+      <main className="min-h-screen bg-void">
+        <Navbar />
 
-        {/* Home */}
-        <a href="/"
-          className="absolute top-4 left-6 z-10 text-xs font-mono transition-colors"
-          style={{ color: "#8B949E" }}
-          onMouseEnter={(e) => (e.currentTarget.style.color = "#E6EDF3")}
-          onMouseLeave={(e) => (e.currentTarget.style.color = "#8B949E")}>
-          ← Home
-        </a>
-
-        {/* ── PANEL 1: AGENT ── */}
-        <div className="flex flex-col border-r p-8 gap-8 transition-all duration-300"
-          style={{ background: "#0D1117", borderColor: accentColor, width: "22%" }}>
-
-          <div>
-            <Label red={isBad}>{isBad ? "Unverified Agent" : "AI Agent"}</Label>
-            <p className="text-xs" style={{ color: accentColor }}>
-              {trunc(isBad ? BAD_AGENT_ADDRESS : AGENT_ADDRESS)}
-            </p>
-          </div>
-
-          <div>
-            <Label>Reputation Score</Label>
-            <div className="flex items-center gap-3 flex-wrap">
-              <span className="font-bold leading-none" style={{ fontSize: 56, color: "#E6EDF3" }}>
-                <AnimatedScore value={displayScore} />
-              </span>
-              <span className="text-xs font-bold px-2 py-1 rounded"
-                style={{ background: badge.bg, color: badge.color }}>
-                {badge.label}
-              </span>
-            </div>
-            {isBad && (
-              <p className="text-xs mt-2" style={{ color: "#E74C3C" }}>
-                Last attempt: signature replay detected
-              </p>
-            )}
-          </div>
-
-          <div>
-            <Label>Status</Label>
-            <span className={`inline-flex items-center gap-2 text-xs px-3 py-1.5 rounded border uppercase tracking-widest ${
-              status === "PAYING"      ? "border-blue-500 text-blue-400"
-              : status === "DONE"     ? "border-green-500 text-green-400"
-              : status === "REJECTED" ? "border-red-500 text-red-400"
-              : status === "BLOCKED"  ? "border-red-500 text-red-400"
-              : "border-gray-600 text-gray-400"
-            }`}>
-              {status === "PAYING" && <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />}
-              {status}
-            </span>
-          </div>
-
-          {isBad && (
-            <div>
-              <Label>Payment Attempts</Label>
-              <p className="text-sm font-bold" style={{ color: "#E74C3C" }}>3 failed attempts</p>
-            </div>
-          )}
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 pt-28 pb-8">
+          <p className="font-display font-semibold text-xs uppercase tracking-[0.05em] text-plum-voltage mb-4">LIVE DEMO</p>
+          <h1 className="font-display font-light text-[clamp(32px,4vw,44px)] leading-[1.1] tracking-[-0.04em] text-bone mb-4">
+            Watch x402 Trust Gating in Real Time
+          </h1>
+          <p className="font-display font-normal text-[16px] leading-[1.5] tracking-[0.025em] text-ash max-w-2xl">
+            A real payment flow through the SwarmPay router. Pick a good or bad agent and run the demo to see the score check, payment, and settlement happen live.
+          </p>
         </div>
 
-        {/* ── PANEL 2: X402 FLOW ── */}
-        <div className="flex flex-col border-r p-8 gap-4"
-          style={{ background: "#0D1117", borderColor: "#1C2333", width: "40%" }}>
+        <div className="max-w-[1200px] mx-auto px-4 sm:px-6 pb-28">
+          <div
+            className="relative flex flex-col lg:flex-row overflow-hidden font-mono rounded-[24px] border border-white/[0.08]"
+            style={{ background: "#050505", color: "#e6e6e6" }}
+          >
 
-          {/* Header row */}
-          <div className="flex items-center justify-between">
-            <div>
-              <Label>X402 Payment Flow</Label>
-              <p className="text-2xl font-bold" style={{ color: "#2F80ED" }}>
-                {elapsed > 0 ? `${elapsed.toLocaleString()}ms` : "0ms"}
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              {running && (
-                <span className="w-2 h-2 rounded-full"
-                  style={{ background: "#10B981", boxShadow: "0 0 6px #10B981",
-                    animation: "pulse-glow 1s ease-in-out infinite" }} />
-              )}
-              <span className="text-xs font-mono uppercase tracking-widest"
-                style={{ color: "#10B981" }}>
-                SwarmPay Router
-              </span>
-            </div>
-          </div>
+            {/* ── PANEL 1: AGENT ── */}
+            <div className="flex flex-col border-b lg:border-b-0 lg:border-r p-6 sm:p-8 gap-8 transition-all duration-300 lg:w-[26%]"
+              style={{ borderColor: "rgba(255,255,255,0.08)", borderLeftWidth: 0, borderLeftColor: accentColor }}>
 
-          {/* Steps */}
-          <div className="flex flex-col flex-1 overflow-auto" style={{ gap: 8 }}>
-            {STEPS.map(({ label, swarmpay }, i) => {
-              const step        = i + 1;
-              const done        = completedSteps.has(step);
-              const isActive    = activeStep === step;
-              const isRejected  = rejectedStep === step;
-              const isFailed    = failedStep === step;
-              const afterRej    = rejectedStep != null && step > rejectedStep;
-              const afterFail   = failedStep != null && step > failedStep;
-              const dimmed      = afterRej || afterFail;
-
-              const slideStyle = mounted
-                ? { animation: `slideIn 0.35s ease both`, animationDelay: `${i * 50}ms` }
-                : { opacity: 0 };
-
-              let rowBg = "transparent";
-              if (isFailed) rowBg = "rgba(239,68,68,0.08)";
-              else if (isActive) rowBg = "rgba(59,130,246,0.06)";
-              else if (done && swarmpay) rowBg = "rgba(16,185,129,0.06)";
-              else if (isRejected) rowBg = "rgba(239,68,68,0.06)";
-
-              let borderLeft = "2px solid #1C2333";
-              if (isFailed) borderLeft = "2px solid #EF4444";
-              else if (isActive) borderLeft = "2px solid #3B82F6";
-              else if (done && swarmpay) borderLeft = "2px solid #10B981";
-              else if (done && !swarmpay) borderLeft = "2px solid #6B7280";
-              else if (isRejected) borderLeft = "2px solid #EF4444";
-
-              let textColor = "#8B949E";
-              if (isFailed) textColor = "#F87171";
-              else if (isActive) textColor = "#E6EDF3";
-              else if (done && swarmpay) textColor = "#6EE7B7";
-              else if (done && !swarmpay) textColor = "#E6EDF3";
-              else if (isRejected) textColor = "#F87171";
-
-              const displayLabel = isFailed
-                ? "Score check: 0 < 400 threshold ✗"
-                : isRejected
-                ? "Merchant rejected — low trust score"
-                : label;
-
-              return (
-                <div key={step}
-                  className={isActive ? "step-active" : ""}
-                  style={{
-                    ...slideStyle,
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 10,
-                    padding: "7px 10px",
-                    borderRadius: 6,
-                    background: rowBg,
-                    borderLeft,
-                    opacity: dimmed ? 0.2 : 1,
-                    transition: "background 0.3s, border-left 0.3s, opacity 0.3s",
-                  }}>
-
-                  {/* Icon */}
-                  <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center">
-                    {(isRejected || isFailed) ? <Cross />
-                      : isActive ? <Spinner />
-                      : done ? <Check color={swarmpay ? "#10B981" : "#E6EDF3"} />
-                      : <span className="text-xs" style={{ color: "#4B5563" }}>{step}</span>}
-                  </div>
-
-                  {/* Label */}
-                  <span className="text-xs flex-1 transition-colors duration-300"
-                    style={{ color: textColor }}>
-                    {displayLabel}
-                  </span>
-
-                  {/* Right side: ms + swarmpay badge */}
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    {(done || isFailed) && swarmpay && (
-                      <span className="text-xs font-mono uppercase tracking-widest px-1.5 py-0.5 rounded"
-                        style={{ background: isFailed ? "#3B0A0A" : "#065F46", color: isFailed ? "#F87171" : "#6EE7B7", fontSize: 9 }}>
-                        SwarmPay
-                      </span>
-                    )}
-                    <span className="text-xs" style={{
-                      color: (isRejected || isFailed) ? "#F87171" : "#4B5563",
-                      opacity: (done || isRejected || isFailed) && stepMs[step] != null ? 1 : 0,
-                      minWidth: 48, textAlign: "right",
-                    }}>
-                      {stepMs[step] != null ? `${stepMs[step]}ms` : ""}
-                    </span>
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-
-          {/* Blocked banner */}
-          {status === "BLOCKED" && (
-            <div className="text-xs font-mono px-3 py-2 rounded"
-              style={{ background: "rgba(239,68,68,0.1)", border: "1px solid rgba(239,68,68,0.3)", color: "#F87171" }}>
-              Payment rejected — agent below trust threshold
-            </div>
-          )}
-
-          {/* Basescan */}
-          {showBasescan && (
-            <a href="https://basescan.org/address/0xb194262C09f89F726172d5E29a4bb18f11403a52"
-              target="_blank" rel="noopener noreferrer"
-              className="text-xs font-mono transition-colors"
-              style={{ color: "#10B981" }}
-              onMouseEnter={(e) => (e.currentTarget.style.color = "#6EE7B7")}
-              onMouseLeave={(e) => (e.currentTarget.style.color = "#10B981")}>
-              ↗ Verify on Basescan
-            </a>
-          )}
-
-          {/* Agent selector */}
-          <div>
-            <Label>Run As Agent</Label>
-            <div className="flex gap-2">
-              <button onClick={() => { if (!running) { setSelectedAgent("good"); setStatus("IDLE"); resetState(); setElapsed(0); } }}
-                className="flex-1 py-2 text-xs uppercase tracking-widest rounded border transition-all duration-150"
-                style={{
-                  borderColor: selectedAgent === "good" ? "#2F80ED" : "#1C2333",
-                  background: selectedAgent === "good" ? "#1E3A5F" : "transparent",
-                  color: selectedAgent === "good" ? "#60A5FA" : "#8B949E",
-                  cursor: running ? "not-allowed" : "pointer",
-                }}>
-                {trunc(AGENT_ADDRESS)}
-              </button>
-              <button onClick={() => { if (!running) { setSelectedAgent("bad"); setStatus("IDLE"); resetState(); setElapsed(0); } }}
-                className="flex-1 py-2 text-xs uppercase tracking-widest rounded border transition-all duration-150"
-                style={{
-                  borderColor: selectedAgent === "bad" ? "#E74C3C" : "#1C2333",
-                  background: selectedAgent === "bad" ? "#3B1010" : "transparent",
-                  color: selectedAgent === "bad" ? "#F87171" : "#8B949E",
-                  cursor: running ? "not-allowed" : "pointer",
-                }}>
-                {trunc(BAD_AGENT_ADDRESS)}
-              </button>
-            </div>
-          </div>
-
-          <button onClick={runDemo} disabled={running}
-            className="w-full py-4 text-sm uppercase font-bold tracking-widest rounded transition-all duration-200"
-            style={{
-              background: running ? "#1C2333" : isBad ? "#7F1D1D" : "#2F80ED",
-              color: running ? "#8B949E" : "#fff",
-              cursor: running ? "not-allowed" : "pointer",
-              border: "none",
-            }}>
-            {running ? "RUNNING..." : "RUN DEMO"}
-          </button>
-        </div>
-
-        {/* ── PANEL 3: MERCHANT ── */}
-        <div className="flex flex-col p-8 gap-8"
-          style={{ background: "#0D1117", width: "38%" }}>
-
-          <div>
-            <Label>API Merchant</Label>
-            <p className="text-xs" style={{ color: "#2F80ED" }}>{trunc(MERCHANT_ADDRESS)}</p>
-          </div>
-
-          <div>
-            <Label>USDC Received</Label>
-            <UsdcCounter value={usdcReceived} />
-          </div>
-
-          <div>
-            <Label>Agent Score at Payment</Label>
-            <p className="font-bold leading-none" style={{
-              fontSize: 40,
-              color: isBad ? "#E74C3C" : "#E6EDF3",
-            }}>
-              {isBad ? 0 : (scoreAtPayment ?? "—")}
-            </p>
-            <p className="text-xs mt-1" style={{ color: "#8B949E" }}>
-              {trunc(isBad ? BAD_AGENT_ADDRESS : AGENT_ADDRESS)}
-            </p>
-          </div>
-
-          <div>
-            <Label>Serve This Agent?</Label>
-            {isBad ? (
-              <div className="flex items-center justify-between">
-                <span className="text-xs" style={{ color: "#8B949E" }}>
-                  {trunc(BAD_AGENT_ADDRESS)}
-                </span>
-                <span className="text-sm font-bold px-3 py-0.5 rounded border"
-                  style={{ color: "#E74C3C", borderColor: "#E74C3C" }}>
-                  ❌ NO
-                </span>
+              <div>
+                <Label red={isBad}>{isBad ? "Unverified Agent" : "AI Agent"}</Label>
+                <p className="text-xs" style={{ color: accentColor }}>
+                  {trunc(isBad ? BAD_AGENT_ADDRESS : AGENT_ADDRESS)}
+                </p>
               </div>
-            ) : status !== "DONE" ? (
-              <span style={{ color: "#8B949E" }}>—</span>
-            ) : (
-              <div className="flex items-center justify-between">
-                <span className="text-xs" style={{ color: "#8B949E" }}>
-                  {trunc(AGENT_ADDRESS)}
-                </span>
-                {(scoreAtPayment ?? 0) > 400 ? (
-                  <span className="text-sm font-bold px-3 py-0.5 rounded border"
-                    style={{ color: "#27AE60", borderColor: "#27AE60" }}>
-                    ✅ YES
+
+              <div>
+                <Label>Reputation Score</Label>
+                <div className="flex items-center gap-3 flex-wrap">
+                  <span className="font-bold leading-none font-display" style={{ fontSize: 56, color: "#ffffff" }}>
+                    <AnimatedScore value={displayScore} />
                   </span>
-                ) : (
-                  <span className="text-sm font-bold px-3 py-0.5 rounded border"
-                    style={{ color: "#E74C3C", borderColor: "#E74C3C" }}>
-                    ❌ NO
+                  <span className="text-xs font-bold px-2 py-1 rounded-md"
+                    style={{ background: badge.bg, color: badge.color }}>
+                    {badge.label}
                   </span>
+                </div>
+                {isBad && (
+                  <p className="text-xs mt-2" style={{ color: "#e05a4e" }}>
+                    Last attempt: signature replay detected
+                  </p>
                 )}
               </div>
-            )}
+
+              <div>
+                <Label>Status</Label>
+                <span className={`inline-flex items-center gap-2 text-xs px-3 py-1.5 rounded-md border uppercase tracking-widest ${
+                  status === "PAYING"      ? "border-plum-voltage/50 text-plum-voltage"
+                  : status === "DONE"     ? "border-lichen/50 text-lichen"
+                  : status === "REJECTED" ? "border-[#e05a4e]/50 text-[#e05a4e]"
+                  : status === "BLOCKED"  ? "border-[#e05a4e]/50 text-[#e05a4e]"
+                  : "border-white/[0.12] text-smoke"
+                }`}>
+                  {status === "PAYING" && <span className="w-1.5 h-1.5 rounded-full bg-plum-voltage animate-pulse" />}
+                  {status}
+                </span>
+              </div>
+
+              {isBad && (
+                <div>
+                  <Label>Payment Attempts</Label>
+                  <p className="text-sm font-bold" style={{ color: "#e05a4e" }}>3 failed attempts</p>
+                </div>
+              )}
+            </div>
+
+            {/* ── PANEL 2: X402 FLOW ── */}
+            <div className="flex flex-col border-b lg:border-b-0 lg:border-r p-6 sm:p-8 gap-4 lg:w-[42%]"
+              style={{ borderColor: "rgba(255,255,255,0.08)" }}>
+
+              {/* Header row */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>X402 Payment Flow</Label>
+                  <p className="text-2xl font-bold font-display" style={{ color: "#a68bff" }}>
+                    {elapsed > 0 ? `${elapsed.toLocaleString()}ms` : "0ms"}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {running && (
+                    <span className="w-2 h-2 rounded-full"
+                      style={{ background: "#15846e", boxShadow: "0 0 6px #15846e",
+                        animation: "pulse-glow 1s ease-in-out infinite" }} />
+                  )}
+                  <span className="text-xs font-mono uppercase tracking-widest"
+                    style={{ color: "#3ecbaa" }}>
+                    SwarmPay Router
+                  </span>
+                </div>
+              </div>
+
+              {/* Steps */}
+              <div className="flex flex-col flex-1 overflow-auto" style={{ gap: 8 }}>
+                {STEPS.map(({ label, swarmpay }, i) => {
+                  const step        = i + 1;
+                  const done        = completedSteps.has(step);
+                  const isActive    = activeStep === step;
+                  const isRejected  = rejectedStep === step;
+                  const isFailed    = failedStep === step;
+                  const afterRej    = rejectedStep != null && step > rejectedStep;
+                  const afterFail   = failedStep != null && step > failedStep;
+                  const dimmed      = afterRej || afterFail;
+
+                  const slideStyle = mounted
+                    ? { animation: `slideIn 0.35s ease both`, animationDelay: `${i * 50}ms` }
+                    : { opacity: 0 };
+
+                  let rowBg = "transparent";
+                  if (isFailed) rowBg = "rgba(224,90,78,0.08)";
+                  else if (isActive) rowBg = "rgba(128,82,255,0.07)";
+                  else if (done && swarmpay) rowBg = "rgba(21,132,110,0.08)";
+                  else if (isRejected) rowBg = "rgba(224,90,78,0.06)";
+
+                  let borderLeft = "2px solid rgba(255,255,255,0.08)";
+                  if (isFailed) borderLeft = "2px solid #e05a4e";
+                  else if (isActive) borderLeft = "2px solid #8052ff";
+                  else if (done && swarmpay) borderLeft = "2px solid #15846e";
+                  else if (done && !swarmpay) borderLeft = "2px solid #6B7280";
+                  else if (isRejected) borderLeft = "2px solid #e05a4e";
+
+                  let textColor = "#9a9a9a";
+                  if (isFailed) textColor = "#f0918a";
+                  else if (isActive) textColor = "#ffffff";
+                  else if (done && swarmpay) textColor = "#3ecbaa";
+                  else if (done && !swarmpay) textColor = "#ffffff";
+                  else if (isRejected) textColor = "#f0918a";
+
+                  const displayLabel = isFailed
+                    ? "Score check: 0 < 400 threshold ✗"
+                    : isRejected
+                    ? "Merchant rejected — low trust score"
+                    : label;
+
+                  return (
+                    <div key={step}
+                      className={isActive ? "step-active" : ""}
+                      style={{
+                        ...slideStyle,
+                        display: "flex",
+                        alignItems: "center",
+                        gap: 10,
+                        padding: "7px 10px",
+                        borderRadius: 6,
+                        background: rowBg,
+                        borderLeft,
+                        opacity: dimmed ? 0.2 : 1,
+                        transition: "background 0.3s, border-left 0.3s, opacity 0.3s",
+                      }}>
+
+                      {/* Icon */}
+                      <div className="flex-shrink-0 w-5 h-5 flex items-center justify-center">
+                        {(isRejected || isFailed) ? <Cross />
+                          : isActive ? <Spinner />
+                          : done ? <Check color={swarmpay ? "#15846e" : "#ffffff"} />
+                          : <span className="text-xs" style={{ color: "#5a5a5a" }}>{step}</span>}
+                      </div>
+
+                      {/* Label */}
+                      <span className="text-xs flex-1 transition-colors duration-300"
+                        style={{ color: textColor }}>
+                        {displayLabel}
+                      </span>
+
+                      {/* Right side: ms + swarmpay badge */}
+                      <div className="flex items-center gap-2 flex-shrink-0">
+                        {(done || isFailed) && swarmpay && (
+                          <span className="text-xs font-mono uppercase tracking-widest px-1.5 py-0.5 rounded"
+                            style={{ background: isFailed ? "rgba(224,90,78,0.15)" : "rgba(21,132,110,0.18)", color: isFailed ? "#f0918a" : "#3ecbaa", fontSize: 9 }}>
+                            SwarmPay
+                          </span>
+                        )}
+                        <span className="text-xs" style={{
+                          color: (isRejected || isFailed) ? "#f0918a" : "#5a5a5a",
+                          opacity: (done || isRejected || isFailed) && stepMs[step] != null ? 1 : 0,
+                          minWidth: 48, textAlign: "right",
+                        }}>
+                          {stepMs[step] != null ? `${stepMs[step]}ms` : ""}
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Blocked banner */}
+              {status === "BLOCKED" && (
+                <div className="text-xs font-mono px-3 py-2 rounded-md"
+                  style={{ background: "rgba(224,90,78,0.1)", border: "1px solid rgba(224,90,78,0.3)", color: "#f0918a" }}>
+                  Payment rejected — agent below trust threshold
+                </div>
+              )}
+
+              {/* Basescan */}
+              {showBasescan && (
+                <a href="https://basescan.org/address/0xb194262C09f89F726172d5E29a4bb18f11403a52"
+                  target="_blank" rel="noopener noreferrer"
+                  className="text-xs font-mono transition-colors"
+                  style={{ color: "#3ecbaa" }}
+                  onMouseEnter={(e) => (e.currentTarget.style.color = "#6ee0c4")}
+                  onMouseLeave={(e) => (e.currentTarget.style.color = "#3ecbaa")}>
+                  ↗ Verify on Basescan
+                </a>
+              )}
+
+              {/* Agent selector */}
+              <div>
+                <Label>Run As Agent</Label>
+                <div className="flex gap-2">
+                  <button onClick={() => { if (!running) { setSelectedAgent("good"); setStatus("IDLE"); resetState(); setElapsed(0); } }}
+                    className="flex-1 py-2 text-xs uppercase tracking-widest rounded-md border transition-all duration-150"
+                    style={{
+                      borderColor: selectedAgent === "good" ? "#8052ff" : "rgba(255,255,255,0.08)",
+                      background: selectedAgent === "good" ? "rgba(128,82,255,0.14)" : "transparent",
+                      color: selectedAgent === "good" ? "#a68bff" : "#9a9a9a",
+                      cursor: running ? "not-allowed" : "pointer",
+                    }}>
+                    {trunc(AGENT_ADDRESS)}
+                  </button>
+                  <button onClick={() => { if (!running) { setSelectedAgent("bad"); setStatus("IDLE"); resetState(); setElapsed(0); } }}
+                    className="flex-1 py-2 text-xs uppercase tracking-widest rounded-md border transition-all duration-150"
+                    style={{
+                      borderColor: selectedAgent === "bad" ? "#e05a4e" : "rgba(255,255,255,0.08)",
+                      background: selectedAgent === "bad" ? "rgba(224,90,78,0.14)" : "transparent",
+                      color: selectedAgent === "bad" ? "#f0918a" : "#9a9a9a",
+                      cursor: running ? "not-allowed" : "pointer",
+                    }}>
+                    {trunc(BAD_AGENT_ADDRESS)}
+                  </button>
+                </div>
+              </div>
+
+              <button onClick={runDemo} disabled={running}
+                className="w-full py-4 text-sm uppercase font-bold tracking-widest rounded-[24px] transition-all duration-200"
+                style={{
+                  background: running ? "rgba(255,255,255,0.06)" : isBad ? "#8f2f27" : "#8052ff",
+                  color: running ? "#9a9a9a" : "#fff",
+                  cursor: running ? "not-allowed" : "pointer",
+                  border: "none",
+                }}>
+                {running ? "RUNNING..." : "RUN DEMO"}
+              </button>
+            </div>
+
+            {/* ── PANEL 3: MERCHANT ── */}
+            <div className="flex flex-col p-6 sm:p-8 gap-8 lg:w-[32%]">
+
+              <div>
+                <Label>API Merchant</Label>
+                <p className="text-xs" style={{ color: "#a68bff" }}>{trunc(MERCHANT_ADDRESS)}</p>
+              </div>
+
+              <div>
+                <Label>USDC Received</Label>
+                <UsdcCounter value={usdcReceived} />
+              </div>
+
+              <div>
+                <Label>Agent Score at Payment</Label>
+                <p className="font-bold leading-none font-display" style={{
+                  fontSize: 40,
+                  color: isBad ? "#e05a4e" : "#ffffff",
+                }}>
+                  {isBad ? 0 : (scoreAtPayment ?? "—")}
+                </p>
+                <p className="text-xs mt-1" style={{ color: "#9a9a9a" }}>
+                  {trunc(isBad ? BAD_AGENT_ADDRESS : AGENT_ADDRESS)}
+                </p>
+              </div>
+
+              <div>
+                <Label>Serve This Agent?</Label>
+                {isBad ? (
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs" style={{ color: "#9a9a9a" }}>
+                      {trunc(BAD_AGENT_ADDRESS)}
+                    </span>
+                    <span className="text-sm font-bold px-3 py-0.5 rounded-md border"
+                      style={{ color: "#e05a4e", borderColor: "#e05a4e" }}>
+                      ❌ NO
+                    </span>
+                  </div>
+                ) : status !== "DONE" ? (
+                  <span style={{ color: "#9a9a9a" }}>—</span>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs" style={{ color: "#9a9a9a" }}>
+                      {trunc(AGENT_ADDRESS)}
+                    </span>
+                    {(scoreAtPayment ?? 0) > 400 ? (
+                      <span className="text-sm font-bold px-3 py-0.5 rounded-md border"
+                        style={{ color: "#3ecbaa", borderColor: "#3ecbaa" }}>
+                        ✅ YES
+                      </span>
+                    ) : (
+                      <span className="text-sm font-bold px-3 py-0.5 rounded-md border"
+                        style={{ color: "#e05a4e", borderColor: "#e05a4e" }}>
+                        ❌ NO
+                      </span>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+
+        <Footer />
+      </main>
     </>
   );
 }
