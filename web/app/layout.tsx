@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, JetBrains_Mono, DM_Sans } from "next/font/google";
+import { Space_Grotesk, JetBrains_Mono } from "next/font/google";
 import Script from "next/script";
 import "./globals.css";
 import { Analytics } from "@vercel/analytics/next";
@@ -9,17 +9,12 @@ const spaceGrotesk = Space_Grotesk({
   subsets: ["latin"],
   variable: "--font-display",
   display: "swap",
+  weight: ["300", "400", "600", "700"],
 });
 
 const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
   variable: "--font-mono",
-  display: "swap",
-});
-
-const dmSans = DM_Sans({
-  subsets: ["latin"],
-  variable: "--font-body",
   display: "swap",
 });
 
@@ -57,11 +52,10 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${spaceGrotesk.variable} ${jetbrainsMono.variable} ${dmSans.variable}`}
-      style={{ scrollBehavior: "smooth", backgroundColor: "#080B10" }}
+      className={`${spaceGrotesk.variable} ${jetbrainsMono.variable}`}
+      style={{ scrollBehavior: "smooth", backgroundColor: "#000000" }}
     >
       <head>
-        {/* Google Tag Manager — only fires after cookie consent (managed by CookieBanner) */}
         <Script
           id="gtag-init"
           strategy="afterInteractive"
@@ -75,7 +69,6 @@ export default function RootLayout({
               window.dataLayer = window.dataLayer || [];
               function gtag(){dataLayer.push(arguments);}
               gtag('js', new Date());
-              // Default consent — denied until user accepts
               gtag('consent', 'default', {
                 analytics_storage: 'denied',
                 ad_storage: 'denied',
@@ -86,7 +79,7 @@ export default function RootLayout({
           }}
         />
       </head>
-      <body className={`${dmSans.className} antialiased bg-sp-bg text-sp-white`}>
+      <body className={`${spaceGrotesk.className} antialiased bg-void text-bone`}>
         {children}
         <CookieBanner />
         <Analytics />

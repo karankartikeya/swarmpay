@@ -34,11 +34,6 @@
   to   { left: 100%; }
 }
 
-@keyframes shimmerBg {
-  0%   { background-position: -200% center; }
-  100% { background-position: 200% center; }
-}
-
 @keyframes barFill {
   from { width: 0; }
   to   { width: var(--bar-width); }
@@ -59,34 +54,18 @@
   50%       { transform: translateY(-8px); }
 }
 
-@keyframes glow-pulse {
-  0%, 100% { opacity: 0.4; }
-  50%       { opacity: 0.8; }
-}
-
 @keyframes spin {
   to { transform: rotate(360deg); }
-}
-
-@keyframes orbit {
-  from { transform: rotate(0deg) translateX(120px) rotate(0deg); }
-  to   { transform: rotate(360deg) translateX(120px) rotate(-360deg); }
-}
-
-@keyframes gradientShift {
-  0%   { background-position: 0% 50%; }
-  50%  { background-position: 100% 50%; }
-  100% { background-position: 0% 50%; }
-}
-
-@keyframes slideInRight {
-  from { opacity: 0; transform: translateX(20px); }
-  to   { opacity: 1; transform: translateX(0); }
 }
 
 @keyframes cookieBanner {
   from { opacity: 0; transform: translateY(100%); }
   to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes particleDrift {
+  0%, 100% { transform: translateY(0) translateX(0); opacity: 0.6; }
+  50%      { transform: translateY(-12px) translateX(6px); opacity: 1; }
 }
 
 /* ── Animation Utility Classes ── */
@@ -125,10 +104,6 @@
   animation: float 4s ease-in-out infinite;
 }
 
-.animate-glow-pulse {
-  animation: glow-pulse 3s ease-in-out infinite;
-}
-
 .animate-spin-slow {
   animation: spin 3s linear infinite;
 }
@@ -136,7 +111,7 @@
 .cursor-blink::after {
   content: "|";
   animation: blink 1s step-end infinite;
-  color: #2f80ed;
+  color: #8052ff;
   margin-left: 1px;
 }
 
@@ -162,76 +137,26 @@
   animation: shimmer 0.6s ease forwards;
 }
 
-/* ── Gradient Text ── */
-.gradient-text {
-  background: linear-gradient(135deg, #2F80ED 0%, #60A5FA 50%, #93C5FD 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-.gradient-text-warm {
-  background: linear-gradient(135deg, #2F80ED 0%, #8B5CF6 50%, #EC4899 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-
-/* ── Animated Gradient Border ── */
-.gradient-border {
-  position: relative;
-}
-
-.gradient-border::before {
-  content: "";
-  position: absolute;
-  inset: -1px;
-  border-radius: inherit;
-  background: linear-gradient(135deg, #2F80ED, #8B5CF6, #2F80ED);
-  background-size: 200% 200%;
-  animation: gradientShift 4s ease infinite;
-  z-index: -1;
-}
-
-/* ── Card styles ── */
+/* ── Card styles — void aesthetic ── */
 
 .card-hover {
-  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+  transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
 }
 
 .card-hover:hover {
   transform: translateY(-3px);
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(47, 128, 237, 0.1);
+  border-color: rgba(128, 82, 255, 0.3);
 }
 
-.card-glow:hover {
-  box-shadow: 0 0 40px rgba(47, 128, 237, 0.12), 0 16px 48px rgba(0, 0, 0, 0.5);
-}
-
-/* ── Stripe-style noise texture overlay ── */
-.noise-overlay {
-  position: relative;
-}
-
-.noise-overlay::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
-  pointer-events: none;
-  border-radius: inherit;
-}
-
-/* ── Feature card ── */
+/* ── Feature card — hairline border on void ── */
 .feature-card {
-  background: linear-gradient(135deg, #0D1117 0%, #0a0f18 100%);
-  border: 1px solid #1C2333;
-  transition: border-color 0.3s ease, box-shadow 0.3s ease, transform 0.2s ease;
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  transition: border-color 0.3s ease, transform 0.2s ease;
 }
 
 .feature-card:hover {
-  border-color: rgba(47, 128, 237, 0.3);
-  box-shadow: 0 0 30px rgba(47, 128, 237, 0.08), 0 16px 48px rgba(0, 0, 0, 0.4);
+  border-color: rgba(128, 82, 255, 0.4);
   transform: translateY(-2px);
 }
 
@@ -249,7 +174,7 @@
   animation: cookieBanner 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
-/* ── Scrollbar styling ── */
+/* ── Scrollbar styling — void theme ── */
 
 ::-webkit-scrollbar {
   width: 5px;
@@ -257,42 +182,33 @@
 }
 
 ::-webkit-scrollbar-track {
-  background: #080b10;
+  background: #000000;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #1c2333;
+  background: rgba(255, 255, 255, 0.1);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #2f80ed;
+  background: #8052ff;
 }
 
-/* ── Stripe-inspired section dividers ── */
+/* ── Section dividers — hairline on void ── */
 .section-divider {
-  background: linear-gradient(90deg, transparent, #1C2333, transparent);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.06), transparent);
   height: 1px;
   width: 100%;
 }
 
-/* ── Glow effects ── */
-.glow-blue {
-  box-shadow: 0 0 60px rgba(47, 128, 237, 0.15), 0 0 120px rgba(47, 128, 237, 0.05);
-}
-
-.glow-blue-sm {
-  box-shadow: 0 0 20px rgba(47, 128, 237, 0.2);
-}
-
 /* ── Prose for policy pages ── */
 .prose-dark {
-  color: #8B949E;
+  color: #bdbdbd;
   line-height: 1.75;
 }
 
 .prose-dark h2 {
-  color: #E6EDF3;
+  color: #ffffff;
   font-size: 1.25rem;
   font-weight: 600;
   margin-top: 2.5rem;
@@ -300,7 +216,7 @@
 }
 
 .prose-dark h3 {
-  color: #E6EDF3;
+  color: #ffffff;
   font-size: 1.05rem;
   font-weight: 600;
   margin-top: 1.5rem;
@@ -322,15 +238,30 @@
 }
 
 .prose-dark a {
-  color: #2F80ED;
+  color: #8052ff;
 }
 
 .prose-dark a:hover {
-  color: #60A5FA;
+  color: #9b75ff;
 }
 
 /* ── Stat counter ── */
 .stat-number {
   font-variant-numeric: tabular-nums;
   font-feature-settings: "tnum";
+}
+
+/* ── Code blocks ── */
+.code-block {
+  background: #000000;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+/* ── Gradient text — plum voltage ── */
+.gradient-text {
+  background: linear-gradient(135deg, #8052ff 0%, #a67dff 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
