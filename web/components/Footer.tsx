@@ -2,31 +2,25 @@ export default function Footer() {
   const year = new Date().getFullYear();
 
   return (
-    <footer className="border-t border-sp-border bg-sp-surface/40 backdrop-blur-sm">
-      <div className="max-w-6xl mx-auto px-4 py-14">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-10 md:gap-8">
-
+    <footer className="border-t border-white/[0.06]">
+      <div className="max-w-[1200px] mx-auto px-4 py-16">
+        <div className="grid grid-cols-2 md:grid-cols-5 gap-10 md:gap-8">
           {/* Brand */}
-          <div className="md:col-span-2">
-            <div className="flex items-center gap-2 mb-3">
-              <span className="font-display font-bold text-xl text-sp-white">SwarmPay</span>
-              <span className="bg-sp-primary/20 text-sp-primary text-[10px] px-2 py-0.5 rounded-full font-mono tracking-wide">
-                BETA
-              </span>
-            </div>
-            <p className="text-sp-muted text-sm leading-relaxed max-w-xs mb-5">
-              The behavioral trust layer for the agent economy. Score any AI agent on Base mainnet in milliseconds.
+          <div className="col-span-2">
+            <span className="font-display font-semibold text-xl text-bone tracking-wide mb-4 block">SwarmPay</span>
+            <p className="font-display font-normal text-smoke text-sm leading-relaxed tracking-[0.025em] max-w-xs mb-6">
+              The credit bureau for the agent economy. Score any AI agent on Base mainnet in milliseconds.
             </p>
             <div className="flex items-center gap-1.5">
-              {/* <span className="w-1.5 h-1.5 rounded-full bg-sp-success animate-pulse-dot" /> */}
-              <span className="text-xs font-mono text-sp-muted">Live on Base Mainnet</span>
+              <span className="w-1.5 h-1.5 rounded-full bg-lichen animate-pulse" />
+              <span className="text-xs font-mono text-smoke">Live on Base Mainnet</span>
             </div>
           </div>
 
           {/* Product */}
           <div>
-            <p className="text-xs font-mono text-sp-muted uppercase tracking-widest mb-4">Product</p>
-            <ul className="space-y-2.5">
+            <p className="font-display font-semibold text-xs uppercase tracking-[0.05em] text-smoke mb-4">Product</p>
+            <ul className="space-y-3">
               {[
                 { label: "Explorer", href: "/explorer" },
                 { label: "Leaderboard", href: "/leaderboard" },
@@ -34,9 +28,24 @@ export default function Footer() {
                 { label: "API Docs", href: "#" },
               ].map((l) => (
                 <li key={l.label}>
-                  <a href={l.href} className="text-sp-muted hover:text-sp-white text-sm transition-colors">
-                    {l.label}
-                  </a>
+                  <a href={l.href} className="font-display font-normal text-smoke hover:text-bone text-sm transition-colors tracking-[0.021em]">{l.label}</a>
+                </li>
+              ))}
+            </ul>
+          </div>
+
+          {/* Resources */}
+          <div>
+            <p className="font-display font-semibold text-xs uppercase tracking-[0.05em] text-smoke mb-4">Resources</p>
+            <ul className="space-y-3">
+              {[
+                { label: "Documentation", href: "#" },
+                { label: "GitHub", href: "#" },
+                { label: "Blog", href: "#" },
+                { label: "Status", href: "#" },
+              ].map((l) => (
+                <li key={l.label}>
+                  <a href={l.href} className="font-display font-normal text-smoke hover:text-bone text-sm transition-colors tracking-[0.021em]">{l.label}</a>
                 </li>
               ))}
             </ul>
@@ -44,8 +53,8 @@ export default function Footer() {
 
           {/* Legal */}
           <div>
-            <p className="text-xs font-mono text-sp-muted uppercase tracking-widest mb-4">Legal</p>
-            <ul className="space-y-2.5">
+            <p className="font-display font-semibold text-xs uppercase tracking-[0.05em] text-smoke mb-4">Legal</p>
+            <ul className="space-y-3">
               {[
                 { label: "Privacy Policy", href: "/privacy" },
                 { label: "Terms of Service", href: "/terms" },
@@ -53,9 +62,7 @@ export default function Footer() {
                 { label: "Imprint", href: "/imprint" },
               ].map((l) => (
                 <li key={l.label}>
-                  <a href={l.href} className="text-sp-muted hover:text-sp-white text-sm transition-colors">
-                    {l.label}
-                  </a>
+                  <a href={l.href} className="font-display font-normal text-smoke hover:text-bone text-sm transition-colors tracking-[0.021em]">{l.label}</a>
                 </li>
               ))}
             </ul>
@@ -63,27 +70,14 @@ export default function Footer() {
         </div>
 
         {/* Bottom bar */}
-        <div className="border-t border-sp-border mt-10 pt-8 flex flex-col sm:flex-row items-center justify-between gap-3">
-          <p className="text-xs text-sp-muted font-mono">
-            © {year} SwarmPay. Built on ERC-8004 · Deployed on Base · Integrated with x402
+        <div className="border-t border-white/[0.06] mt-12 pt-8 flex flex-col sm:flex-row items-center justify-between gap-3">
+          <p className="text-xs text-smoke font-mono">
+            &copy; {year} SwarmPay. Built on ERC-8004 &middot; Deployed on Base &middot; Integrated with x402
           </p>
           <div className="flex items-center gap-5">
-            <a
-              href="/#"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sp-muted hover:text-sp-white text-xs transition-colors"
-            >
-              Twitter
-            </a>
-            <a
-              href="/#"
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-sp-muted hover:text-sp-white text-xs transition-colors"
-            >
-              GitHub
-            </a>
+            <a href="#" target="_blank" rel="noopener noreferrer" className="text-smoke hover:text-bone text-xs transition-colors">Twitter</a>
+            <a href="#" target="_blank" rel="noopener noreferrer" className="text-smoke hover:text-bone text-xs transition-colors">GitHub</a>
+            <a href="#" target="_blank" rel="noopener noreferrer" className="text-smoke hover:text-bone text-xs transition-colors">Discord</a>
           </div>
         </div>
       </div>

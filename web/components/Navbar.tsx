@@ -4,10 +4,11 @@ import { useState, useEffect } from "react";
 import { usePathname } from "next/navigation";
 
 const NAV_LINKS = [
-  { label: "Explorer", href: "/explorer" },
-  { label: "Leaderboard", href: "/leaderboard" },
-  { label: "Demo", href: "/demo?mode=presentation" },
-  { label: "Docs", href: "#" },
+  { label: "EXPLORER", href: "/explorer" },
+  { label: "LEADERBOARD", href: "/leaderboard" },
+  { label: "USE CASES", href: "/#use-cases" },
+  { label: "DEMO", href: "/demo?mode=presentation" },
+  { label: "DOCS", href: "#" },
 ];
 
 export default function Navbar() {
@@ -16,34 +17,30 @@ export default function Navbar() {
   const pathname = usePathname();
 
   useEffect(() => {
-    const handleScroll = () => setScrolled(window.scrollY > 60);
+    const handleScroll = () => setScrolled(window.scrollY > 20);
     window.addEventListener("scroll", handleScroll, { passive: true });
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Close mobile menu on route change
   useEffect(() => { setMenuOpen(false); }, [pathname]);
 
-  const isActive = (href: string) => pathname === href || (href !== "/" && pathname.startsWith(href.split("?")[0]));
+  const isActive = (href: string) =>
+    pathname === href || (href !== "/" && !href.startsWith("/#") && pathname.startsWith(href.split("?")[0]));
 
   return (
     <nav
       className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${
         scrolled || menuOpen
-          ? "backdrop-blur-xl bg-sp-bg/85 border-b border-sp-border/60"
+          ? "bg-void/95 backdrop-blur-md border-b border-white/[0.06]"
           : "bg-transparent"
       }`}
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6">
-        <div className="flex items-center justify-between h-15 py-3.5">
-
+        <div className="flex items-center justify-between h-16">
           {/* Logo */}
           <a href="/" className="flex items-center gap-2 group">
-            <span className="font-display font-bold text-sp-white text-base group-hover:text-sp-primary transition-colors">
+            <span className="font-display font-semibold text-bone text-lg tracking-wide group-hover:text-plum-voltage transition-colors">
               SwarmPay
-            </span>
-            <span className="bg-sp-primary/15 text-sp-primary text-[10px] px-2 py-0.5 rounded-full font-mono tracking-wide border border-sp-primary/20">
-              BETA
             </span>
           </a>
 
@@ -53,25 +50,22 @@ export default function Navbar() {
               <a
                 key={link.label}
                 href={link.href}
-                className={`relative px-3.5 py-2 text-sm rounded-md transition-all duration-150 ${
+                className={`px-3.5 py-2 text-sm font-display font-normal transition-colors duration-150 tracking-[0.021em] ${
                   isActive(link.href)
-                    ? "text-sp-white bg-sp-primary/10"
-                    : "text-sp-muted hover:text-sp-white hover:bg-sp-surface/60"
+                    ? "text-bone"
+                    : "text-smoke hover:text-bone"
                 }`}
               >
                 {link.label}
-                {isActive(link.href) && (
-                  <span className="absolute bottom-0 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-sp-primary" />
-                )}
               </a>
             ))}
           </div>
 
           {/* Desktop CTA */}
-          <div className="hidden md:flex items-center gap-3">
+          <div className="hidden md:flex items-center">
             <a
               href="/#waitlist"
-              className="bg-sp-primary hover:bg-blue-500 text-white text-sm px-4 py-2 rounded-lg font-medium transition-all duration-200 btn-shimmer shadow-sm shadow-sp-primary/20"
+              className="bg-plum-voltage hover:bg-plum-voltage/90 text-bone text-xs font-display font-semibold uppercase tracking-[0.05em] px-4 py-3 rounded-[24px] transition-colors duration-200"
             >
               Request Access
             </a>
@@ -79,7 +73,7 @@ export default function Navbar() {
 
           {/* Mobile hamburger */}
           <button
-            className="md:hidden flex items-center justify-center w-9 h-9 rounded-md text-sp-muted hover:text-sp-white hover:bg-sp-surface/60 transition-colors"
+            className="md:hidden flex items-center justify-center w-9 h-9 text-smoke hover:text-bone transition-colors"
             onClick={() => setMenuOpen(!menuOpen)}
             aria-label="Toggle menu"
           >
@@ -101,32 +95,36 @@ export default function Navbar() {
         </div>
 
         {/* Mobile menu */}
-        {menuOpen && (
-          <div className="md:hidden py-3 pb-5 flex flex-col gap-1 border-t border-sp-border/40">
+        <div
+          className={`md:hidden overflow-hidden transition-all duration-300 ${
+            menuOpen ? "max-h-96 opacity-100" : "max-h-0 opacity-0"
+          }`}
+        >
+          <div className="py-3 pb-5 flex flex-col gap-1 border-t border-white/[0.06]">
             {NAV_LINKS.map((link) => (
               <a
                 key={link.label}
                 href={link.href}
-                className={`px-3 py-2.5 rounded-lg text-sm transition-colors ${
+                className={`px-3 py-2.5 text-sm font-display tracking-[0.021em] transition-colors ${
                   isActive(link.href)
-                    ? "text-sp-white bg-sp-primary/10"
-                    : "text-sp-muted hover:text-sp-white hover:bg-sp-surface"
+                    ? "text-bone"
+                    : "text-smoke hover:text-bone"
                 }`}
                 onClick={() => setMenuOpen(false)}
               >
                 {link.label}
               </a>
             ))}
-            <div className="h-px bg-sp-border/40 my-2" />
+            <div className="h-px bg-white/[0.06] my-2" />
             <a
               href="/#waitlist"
-              className="mx-1 bg-sp-primary hover:bg-blue-500 text-white text-sm px-4 py-2.5 rounded-lg font-medium transition-colors text-center btn-shimmer"
+              className="mx-1 bg-plum-voltage hover:bg-plum-voltage/90 text-bone text-xs font-display font-semibold uppercase tracking-[0.05em] px-4 py-3 rounded-[24px] transition-colors text-center"
               onClick={() => setMenuOpen(false)}
             >
               Request Access
             </a>
           </div>
-        )}
+        </div>
       </div>
     </nav>
   );
