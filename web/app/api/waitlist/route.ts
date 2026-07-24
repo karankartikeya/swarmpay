@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js";
 
 export async function POST(request: NextRequest) {
   try {
@@ -20,16 +21,32 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    console.log(
-      "WAITLIST:",
-      JSON.stringify({
-        name: name.trim(),
-        email: email.trim().toLowerCase(),
-        company: company.trim(),
-        useCase: useCase.trim(),
-        timestamp: new Date().toISOString(),
-      })
-    );
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+    if (!url || !key) {
+      console.error("Waitlist error: Supabase env vars not set");
+      return NextResponse.json(
+        { error: "Internal server error." },
+        { status: 500 }
+      );
+    }
+
+    const supabase = createClient(url, key);
+    const { error } = await supabase.from("waitlist").insert({
+      name: name.trim(),
+      email: email.trim().toLowerCase(),
+      company: company.trim() || null,
+      use_case: useCase.trim() || null,
+      source: "homepage-form",
+    });
+
+    if (error && error.code !== "23505") {
+      console.error("Waitlist insert error:", error);
+      return NextResponse.json(
+        { error: "Internal server error." },
+        { status: 500 }
+      );
+    }
 
     return NextResponse.json(
       { success: true, message: "You're on the list." },
